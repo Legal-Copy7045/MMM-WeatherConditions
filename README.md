@@ -22,14 +22,7 @@ Optional extras (Configure → Options):
 
 ### MagicMirror, fed by Home Assistant (mode C)
 
-`mode: "homeassistant"` in the module config — reads the integration's `_status` sensor straight from the mirror's browser (no separate weather API call, no node_helper polling). Needs HA's REST API reachable from the mirror with CORS allowed for its origin:
-
-```yaml
-# configuration.yaml
-http:
-  cors_allowed_origins:
-    - http://<mirror-ip>:8080
-```
+`mode: "homeassistant"` in the module config — reads the integration's `_status` sensor straight from the mirror's browser over HA's **WebSocket API** (same approach as MMM-KiaAccess's `ha_source.js`), not a REST poll. No `cors_allowed_origins` configuration needed on the HA side — browsers don't apply CORS to a WebSocket handshake the way they do to `fetch()`. Just a reachable HA URL and a long-lived access token.
 
 ### MagicMirror, standalone (mode B)
 

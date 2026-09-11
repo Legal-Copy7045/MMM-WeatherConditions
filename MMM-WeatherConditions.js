@@ -102,8 +102,7 @@ Module.register("MMM-WeatherConditions", {
 
   notificationReceived(notification) {
     if (notification === "DOM_OBJECTS_CREATED" && this.config.mode === "homeassistant") {
-      const haCfg = { pollMs: this.config.updateInterval, ...this.config.homeassistant };
-      this._haSource = new HaWeatherSource(haCfg, (state) => this.applyState(state));
+      this._haSource = new HaWeatherSource(this.config.homeassistant, (state) => this.applyState(state));
       this._haSource.connect();
     }
   },
