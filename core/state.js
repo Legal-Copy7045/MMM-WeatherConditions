@@ -17,6 +17,9 @@
  * }
  */
 
+const units =
+  typeof module === "object" && module.exports ? require("./units") : window.WeatherCore.units;
+
 /** Magnus-Tetens approximation, used when a source doesn't report dew point. */
 function computeDewPointC(tempC, humidityPct) {
   if (tempC === null || tempC === undefined || humidityPct === null || humidityPct === undefined) return null;
@@ -24,6 +27,25 @@ function computeDewPointC(tempC, humidityPct) {
   const b = 243.12;
   const gamma = (a * tempC) / (b + tempC) + Math.log(humidityPct / 100);
   return (b * gamma) / (a - gamma);
+}
+
+// HA weather entities report values in whatever unit the entity itself uses
+// (its own *_unit attribute) — NOT necessarily our canonical base unit. Map
+// HA's unit strings to our unit codes so we can convert with units.js.
+const HA_TEMP_UNIT_MAP = { "°F": "F", "°C": "C", K: "K" };
+const HA_PRESSURE_UNIT_MAP = { hPa: "hPa", mbar: "hPa", inHg: "inHg", mmHg: "mmHg", kPa: "kPa" };
+const HA_SPEED_UNIT_MAP = { mph: "mph", "km/h": "kmh", kmh: "kmh", "m/s": "ms", kn: "kn", kt: "kn" };
+const HA_LENGTH_SMALL_UNIT_MAP = { mm: "mm", cm: "cm", in: "in" };
+const HA_LENGTH_LARGE_UNIT_MAP = { km: "km", mi: "mi" };
+
+/** Convert `value` (in `unitCode`) to the kind's base unit; passes through unchanged if unrecognized. */
+function toBaseHa(value, kind, unitCode) {
+  if (value === null || value === undefined || !unitCode) return value;
+  try {
+    return units.toBase(kind, value, unitCode);
+  } catch (e) {
+    return value;
+  }
 }
 
 const OWM_ICON_MAP = {
@@ -200,19 +222,30 @@ const HA_CONDITION_ICON = {
 function fromHaWeather(entity, { hourlyForecast = [], dailyForecast = [], extra = {} } = {}) {
   const a = entity.attributes || {};
   const isDay = entity.state !== "clear-night" && entity.state !== "cloudy-night";
+
+  const tempUnit = HA_TEMP_UNIT_MAP[a.temperature_unit];
+  const pressureUnit = HA_PRESSURE_UNIT_MAP[a.pressure_unit];
+  const speedUnit = HA_SPEED_UNIT_MAP[a.wind_speed_unit];
+  const visibilityUnit = HA_LENGTH_LARGE_UNIT_MAP[a.visibility_unit];
+  const precipUnit = HA_LENGTH_SMALL_UNIT_MAP[a.precipitation_unit];
+
+  const tempC = toBaseHa(a.temperature, "temperature", tempUnit);
+  const feelsLikeC = toBaseHa(a.apparent_temperature, "temperature", tempUnit) ?? tempC;
+  const dewPointC = toBaseHa(a.dew_point, "temperature", tempUnit) ?? computeDewPointC(tempC, a.humidity);
+
   const current = {
-    tempC: a.temperature,
-    feelsLikeC: a.apparent_temperature ?? a.temperature,
+    tempC,
+    feelsLikeC,
     humidityPct: a.humidity,
-    dewPointC: a.dew_point ?? computeDewPointC(a.temperature, a.humidity),
-    pressureHpa: a.pressure,
-    windKmh: a.wind_speed,
-    windGustKmh: a.wind_gust_speed,
+    dewPointC,
+    pressureHpa: toBaseHa(a.pressure, "pressure", pressureUnit),
+    windKmh: toBaseHa(a.wind_speed, "speed", speedUnit),
+    windGustKmh: toBaseHa(a.wind_gust_speed, "speed", speedUnit),
     windDirDeg: a.wind_bearing,
     uvIndex: a.uv_index,
     cloudPct: a.cloud_coverage,
-    visibilityKm: a.visibility,
-    precipMm: null,
+    visibilityKm: toBaseHa(a.visibility, "lengthLarge", visibilityUnit),
+    precipMm: toBaseHa(a.precipitation, "lengthSmall", precipUnit),
     soilTempC: null,
     rainRateMmh: null,
     condition: entity.state,
@@ -231,21 +264,21 @@ function fromHaWeather(entity, { hourlyForecast = [], dailyForecast = [], extra 
     current,
     hourly: hourlyForecast.map((f) => ({
       time: f.datetime,
-      tempC: f.temperature,
-      precipMm: f.precipitation || 0,
+      tempC: toBaseHa(f.temperature, "temperature", tempUnit),
+      precipMm: toBaseHa(f.precipitation, "lengthSmall", precipUnit) || 0,
       precipProbPct: f.precipitation_probability ?? null,
-      windKmh: f.wind_speed,
+      windKmh: toBaseHa(f.wind_speed, "speed", speedUnit),
       windDirDeg: f.wind_bearing,
       condition: f.condition,
       icon: HA_CONDITION_ICON[f.condition] || "cloudy",
     })),
     daily: dailyForecast.map((f) => ({
       date: f.datetime,
-      tempMinC: f.templow ?? f.temperature,
-      tempMaxC: f.temperature,
-      precipMm: f.precipitation || 0,
+      tempMinC: toBaseHa(f.templow ?? f.temperature, "temperature", tempUnit),
+      tempMaxC: toBaseHa(f.temperature, "temperature", tempUnit),
+      precipMm: toBaseHa(f.precipitation, "lengthSmall", precipUnit) || 0,
       precipProbPct: f.precipitation_probability ?? null,
-      windKmh: f.wind_speed,
+      windKmh: toBaseHa(f.wind_speed, "speed", speedUnit),
       windDirDeg: f.wind_bearing,
       condition: f.condition,
       icon: HA_CONDITION_ICON[f.condition] || "cloudy",
