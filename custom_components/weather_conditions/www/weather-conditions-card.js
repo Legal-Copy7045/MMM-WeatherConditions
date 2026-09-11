@@ -1545,6 +1545,15 @@ const CARD_CSS = `/* Icon glyphs from erikflowers/weather-icons (SIL OFL-1.1 fon
 .wc-weather-conditions {
   color: #eef1f8;
   font-family: inherit;
+  /* MagicMirror's own region CSS sets text-align:right on whatever module
+     sits in the top_right/bottom_right regions (confirmed live:
+     .region.top.right computes text-align:right) -- every plain-text block
+     in this module (card titles, the condition line, the summary) was
+     silently inheriting that and rendering flush-right regardless of which
+     region the module was placed in. Flex-laid-out elements were immune
+     (justify-content overrides it), which is why only text blocks looked
+     misplaced. Pin it explicitly so the module reads the same everywhere. */
+  text-align: left;
   /* MMM-MyScoreboard shrink-wraps to its content instead of holding a fixed
      width -- it measured 325px with no games showing and 375px once a live
      game row rendered ("CHC PIT @ 14:20"). Matching its populated width

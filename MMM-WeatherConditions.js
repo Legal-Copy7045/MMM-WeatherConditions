@@ -133,7 +133,7 @@ Module.register("MMM-WeatherConditions", {
     const wrapper = document.createElement("div");
 
     if (!this.loaded) {
-      wrapper.innerHTML = `<div class="wc-loading wc-dimmed">Loading weather&#8230;</div>`;
+      wrapper.innerHTML = `<div class="wc-weather-conditions"><div class="wc-loading wc-dimmed">Loading weather&#8230;</div></div>`;
       return wrapper;
     }
 
