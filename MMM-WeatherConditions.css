@@ -29,6 +29,18 @@
 .wc-stale-badge {
   margin-bottom: 4px;
   color: #f2733c;
+  font-size: 0.85em;
+}
+
+/* De-emphasized text, fully self-contained. Deliberately NOT using
+   MagicMirror's own .dimmed/.small/.xsmall classes here: .small computes
+   to 20px (MM's page font-size, sized for room-distance reading -- it's
+   only "small" relative to MM's own larger headline sizes, not smaller
+   than normal), which silently overrode every sub-label's sizing with
+   nothing in this module able to out-cascade it, and blew out the
+   compact fixed-width layout everywhere it was used. */
+.wc-dimmed {
+  opacity: 0.65;
 }
 
 /* ---- current conditions ---- */
@@ -65,12 +77,14 @@
 
 .wc-feelslike {
   white-space: nowrap;
+  font-size: 0.85em;
 }
 
 .wc-summary {
   margin-top: 4px;
   font-style: italic;
   line-height: 1.25;
+  font-size: 0.85em;
 }
 
 .wc-current-stats {
@@ -108,6 +122,7 @@
 .wc-stat-sub {
   margin-top: 1px;
   white-space: nowrap;
+  font-size: 0.78em;
 }
 
 .wc-sunarc-wrap {
@@ -179,11 +194,11 @@
 .wc-chart-wrap {
   position: relative;
   width: 100%;
-  height: 64px;
+  height: 90px;
 }
 
 .wc-chart-wrap canvas {
-  max-height: 64px;
+  max-height: 90px;
 }
 
 .wc-chart-wrap-mini {
@@ -196,6 +211,11 @@
 
 .wc-minutely-callout {
   margin-bottom: 4px;
+  font-size: 0.9em;
+}
+
+.wc-loading {
+  font-size: 1em;
 }
 
 /* ---- unit cycling (see core/unitcycle.js) ---- */

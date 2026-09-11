@@ -65,15 +65,15 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         <div class="wc-current-temp">${uc("wc-temp-now", "temperature", cur.tempC)}</div>
         <div class="wc-current-cond">
           <div class="wc-cond-text">${escapeHtml(cur.condition || "")}</div>
-          <div class="wc-feelslike dimmed small">Feels like ${uc("wc-temp-feels", "temperature", cur.feelsLikeC)}</div>
+          <div class="wc-feelslike wc-dimmed">Feels like ${uc("wc-temp-feels", "temperature", cur.feelsLikeC)}</div>
         </div>
       </div>
-      ${today.summary ? `<div class="wc-summary dimmed small">${escapeHtml(today.summary)}</div>` : ""}
+      ${today.summary ? `<div class="wc-summary wc-dimmed">${escapeHtml(today.summary)}</div>` : ""}
       <div class="wc-current-stats">
         <div class="wc-stat">
           <span class="wc-stat-label">Humidity</span>
           <span class="wc-stat-value">${cur.humidityPct != null ? Math.round(cur.humidityPct) + "%" : "--"}</span>
-          <span class="wc-stat-sub dimmed small">Dew point ${uc("wc-dewpoint", "temperature", cur.dewPointC)}</span>
+          <span class="wc-stat-sub wc-dimmed">Dew point ${uc("wc-dewpoint", "temperature", cur.dewPointC)}</span>
         </div>
         <div class="wc-stat">
           <span class="wc-stat-label">Pressure</span>
@@ -82,7 +82,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         <div class="wc-stat">
           <span class="wc-stat-label">Wind</span>
           <span class="wc-stat-value">${visuals.windArrowSvg(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
-          ${cur.windGustKmh != null ? `<span class="wc-stat-sub dimmed small">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
+          ${cur.windGustKmh != null ? `<span class="wc-stat-sub wc-dimmed">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
         </div>
         <div class="wc-stat">
           <span class="wc-stat-label">UV Index</span>
@@ -110,9 +110,9 @@ function forecastHeadsHtml(rows, config, timeOpts, fmt) {
     .map((r) => {
       const t = fmt(r.time || r.date, timeOpts, config.locale);
       return `<div class="wc-hcol">
-        <div class="wc-hcol-time dimmed small">${t}</div>
+        <div class="wc-hcol-time wc-dimmed">${t}</div>
         <div class="wc-hcol-icon">${visuals.iconSvg(r.icon, { size: 28 })}</div>
-        <div class="wc-hcol-wind">${visuals.windArrowSvg(r.windDirDeg, r.windKmh, { size: 14 })} <span class="small">${units.format("speed", r.windKmh, config.units.wind.list[0])}</span></div>
+        <div class="wc-hcol-wind">${visuals.windArrowSvg(r.windDirDeg, r.windKmh, { size: 14 })} <span>${units.format("speed", r.windKmh, config.units.wind.list[0])}</span></div>
       </div>`;
     })
     .join("");
@@ -126,7 +126,7 @@ function hourlyCardHtml(state, config, fmt = defaultFmt) {
     <div class="wc-card wc-hourly">
       <div class="wc-card-title">Hourly Forecast</div>
       <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-hourly-chart" height="64"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-hourly-chart" height="90"></canvas></div>
     </div>
   `;
 }
@@ -138,7 +138,7 @@ function dailyCardHtml(state, config, fmt = defaultFmt) {
     <div class="wc-card wc-daily">
       <div class="wc-card-title">Daily Forecast</div>
       <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="64"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="90"></canvas></div>
     </div>
   `;
 }
@@ -147,7 +147,7 @@ function soilForecastCardHtml(state, config) {
   return `
     <div class="wc-card wc-soil">
       <div class="wc-card-title">Soil Temp — ${config.soilForecastDays || 3}-Day</div>
-      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="64"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="90"></canvas></div>
     </div>
   `;
 }
@@ -174,7 +174,7 @@ function minutelyCardHtml(state, config) {
   return `
     <div class="wc-card wc-minutely">
       <div class="wc-card-title">Next Hour</div>
-      ${callout ? `<div class="wc-minutely-callout dimmed small">${escapeHtml(callout)}</div>` : ""}
+      ${callout ? `<div class="wc-minutely-callout wc-dimmed">${escapeHtml(callout)}</div>` : ""}
       <div class="wc-chart-wrap wc-chart-wrap-mini"><canvas id="wc-minutely-chart" height="28"></canvas></div>
     </div>
   `;
@@ -184,7 +184,7 @@ function minutelyCardHtml(state, config) {
 function weatherHtml(state, config, fmt = defaultFmt) {
   const cards = config.cards || {};
   let html = `<div class="wc-weather-conditions">`;
-  if (state.stale) html += `<div class="wc-stale-badge dimmed small">showing last known data</div>`;
+  if (state.stale) html += `<div class="wc-stale-badge wc-dimmed">showing last known data</div>`;
   if (cards.current !== false) html += currentCardHtml(state, config, fmt);
   if (cards.minutely !== false && state.minutely && state.minutely.length) html += minutelyCardHtml(state, config);
   if (cards.hourly !== false && state.hourly && state.hourly.length) html += hourlyCardHtml(state, config, fmt);

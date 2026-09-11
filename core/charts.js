@@ -68,6 +68,35 @@ function precipLabelsPlugin(precipUnit, decimals) {
   };
 }
 
+/**
+ * Draws each point's value ("19°") above (or below, via `dy`) the line in
+ * the given colour, matching the reference module's labelled temperature
+ * lines (high in orange above, low in green below, near the precip bars).
+ */
+function pointLabelsPlugin(datasetLabel, { color, unit, decimals, dy = -6 }) {
+  return {
+    id: `wcPointLabels_${datasetLabel}`,
+    afterDatasetsDraw(chart) {
+      const dsIndex = chart.data.datasets.findIndex((d) => d.label === datasetLabel);
+      if (dsIndex === -1) return;
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (!meta || meta.hidden) return;
+      const values = chart.data.datasets[dsIndex].data;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "bold 9px sans-serif";
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      meta.data.forEach((point, i) => {
+        const v = values[i];
+        if (v == null) return;
+        ctx.fillText(`${v.toFixed(decimals)}${unit}`, point.x, point.y + dy);
+      });
+      ctx.restore();
+    },
+  };
+}
+
 /** rows: hourly or daily canonical rows. timeField: "time" | "date". isDaily adds a low-temp line. */
 function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) {
   const series = (isDaily ? config.dailySeries : config.hourlySeries) || {};
@@ -77,6 +106,9 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
     fmt(r[timeField], isDaily ? { weekday: "short" } : { hour: "numeric" }, config.locale)
   );
   const datasets = [];
+  const plugins = [];
+  const tempLabel = units.labelFor("temperature", tempUnit);
+  const tempDecimals = units.decimalsFor("temperature", tempUnit);
 
   if (series.temperature !== false) {
     const field = isDaily ? "tempMaxC" : "tempC";
@@ -90,6 +122,7 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
       pointRadius: 3,
       tension: 0.3,
     });
+    plugins.push(pointLabelsPlugin("Temperature", { color: "#f4c542", unit: tempLabel, decimals: tempDecimals, dy: -8 }));
     if (isDaily) {
       datasets.push({
         type: "line",
@@ -101,9 +134,9 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
         pointRadius: 0,
         tension: 0.3,
       });
+      plugins.push(pointLabelsPlugin("Low", { color: "#8bd346", unit: tempLabel, decimals: tempDecimals, dy: 12 }));
     }
   }
-  const plugins = [];
   if (series.precipitation !== false) {
     datasets.push({
       type: "bar",

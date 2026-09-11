@@ -129,27 +129,32 @@ Module.register("MMM-WeatherConditions", {
     const wrapper = document.createElement("div");
 
     if (!this.loaded) {
-      wrapper.innerHTML = `<div class="wc-loading dimmed light small">Loading weather&#8230;</div>`;
+      wrapper.innerHTML = `<div class="wc-loading wc-dimmed">Loading weather&#8230;</div>`;
       return wrapper;
     }
 
     // core/render.js owns the markup; MM and the Lovelace card share it verbatim.
     wrapper.innerHTML = WeatherCore.render.weatherHtml(this.weatherState, this.config, this.fmt);
 
-    // Charts + unit-cycling need their elements attached to the live DOM first.
-    setTimeout(() => {
-      this.renderCharts(this.weatherState);
-      this.startCycling();
-    }, 0);
+    // Query relative to `wrapper` itself (its children exist the instant
+    // innerHTML is set, whether or not MM has inserted `wrapper` into the
+    // visible document yet) rather than document.getElementById/
+    // querySelectorAll -- a setTimeout(0) here previously raced against
+    // MM's own DOM-swap timing and regularly found nothing, silently
+    // skipping every chart AND the unit-cycling timers with no error.
+    // Chart.js's responsive sizing still works once `wrapper` is actually
+    // attached (its ResizeObserver picks up the real size then).
+    this.renderCharts(wrapper, this.weatherState);
+    this.startCycling(wrapper);
 
     return wrapper;
   },
 
-  startCycling() {
+  startCycling(root) {
     const groups = ["temperature", "pressure", "wind", "precipitation", "visibility"];
     groups.forEach((kind) => {
       const cfg = this.config.units[kind] || {};
-      document.querySelectorAll(`.wc-unit-cycle[data-kind="${WeatherCore.render.unitKindFor(kind)}"]`).forEach((el) => {
+      root.querySelectorAll(`.wc-unit-cycle[data-kind="${WeatherCore.render.unitKindFor(kind)}"]`).forEach((el) => {
         if (el._wcTimer) clearInterval(el._wcTimer);
         el.style.setProperty("--wc-fade-ms", `${cfg.fadeMs || 600}ms`);
         const items = Array.from(el.querySelectorAll(".wc-uc-item"));
@@ -164,10 +169,10 @@ Module.register("MMM-WeatherConditions", {
     });
   },
 
-  renderCharts(s) {
+  renderCharts(root, s) {
     const cards = this.config.cards;
     if (cards.minutely !== false && s.minutely && s.minutely.length) {
-      const canvas = document.getElementById("wc-minutely-chart");
+      const canvas = root.querySelector("#wc-minutely-chart");
       if (canvas) {
         this._destroyChart("_minutelyChart");
         const cfg = WeatherCore.charts.minutelyChartConfig(s);
@@ -175,7 +180,7 @@ Module.register("MMM-WeatherConditions", {
       }
     }
     if (cards.hourly && s.hourly && s.hourly.length) {
-      const canvas = document.getElementById("wc-hourly-chart");
+      const canvas = root.querySelector("#wc-hourly-chart");
       if (canvas) {
         this._destroyChart("_hourlyChart");
         const cfg = WeatherCore.charts.hourlyChartConfig(s, this.config, this.fmt);
@@ -183,7 +188,7 @@ Module.register("MMM-WeatherConditions", {
       }
     }
     if (cards.daily && s.daily && s.daily.length) {
-      const canvas = document.getElementById("wc-daily-chart");
+      const canvas = root.querySelector("#wc-daily-chart");
       if (canvas) {
         this._destroyChart("_dailyChart");
         const cfg = WeatherCore.charts.dailyChartConfig(s, this.config, this.fmt);
@@ -191,7 +196,7 @@ Module.register("MMM-WeatherConditions", {
       }
     }
     if (cards.soilForecast && s.soilForecast && s.soilForecast.length) {
-      const canvas = document.getElementById("wc-soil-chart");
+      const canvas = root.querySelector("#wc-soil-chart");
       if (canvas) {
         this._destroyChart("_soilChart");
         const cfg = WeatherCore.charts.soilChartConfig(s, this.config, this.fmt);

@@ -434,6 +434,8 @@ function sunArcSvg({ sunrise, sunset, now = new Date(), width = 260, height = 84
     <line x1="${x0}" y1="${yBase}" x2="${x1}" y2="${yBase}" stroke="#3a4258" stroke-width="1" stroke-dasharray="2 3"/>
     <path d="M ${x0} ${yBase} Q ${midX} ${yTop} ${x1} ${yBase}" fill="none" stroke="#f4c542" stroke-width="2"/>
     ${isUp ? `<circle cx="${marker.x.toFixed(1)}" cy="${marker.y.toFixed(1)}" r="5" fill="#f4c542" id="${id}"/>` : ""}
+    ${sunGlyph(x0, yBase, 6)}
+    ${moonGlyph(x1, yBase, 6)}
     <text x="${x0}" y="${height - 4}" font-size="11" fill="#c7cede" text-anchor="start">${timeFmt(new Date(sunrise))}</text>
     <text x="${x1}" y="${height - 4}" font-size="11" fill="#c7cede" text-anchor="end">${timeFmt(new Date(sunset))}</text>
   </svg>`;
@@ -606,15 +608,15 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         <div class="wc-current-temp">${uc("wc-temp-now", "temperature", cur.tempC)}</div>
         <div class="wc-current-cond">
           <div class="wc-cond-text">${escapeHtml(cur.condition || "")}</div>
-          <div class="wc-feelslike dimmed small">Feels like ${uc("wc-temp-feels", "temperature", cur.feelsLikeC)}</div>
+          <div class="wc-feelslike wc-dimmed">Feels like ${uc("wc-temp-feels", "temperature", cur.feelsLikeC)}</div>
         </div>
       </div>
-      ${today.summary ? `<div class="wc-summary dimmed small">${escapeHtml(today.summary)}</div>` : ""}
+      ${today.summary ? `<div class="wc-summary wc-dimmed">${escapeHtml(today.summary)}</div>` : ""}
       <div class="wc-current-stats">
         <div class="wc-stat">
           <span class="wc-stat-label">Humidity</span>
           <span class="wc-stat-value">${cur.humidityPct != null ? Math.round(cur.humidityPct) + "%" : "--"}</span>
-          <span class="wc-stat-sub dimmed small">Dew point ${uc("wc-dewpoint", "temperature", cur.dewPointC)}</span>
+          <span class="wc-stat-sub wc-dimmed">Dew point ${uc("wc-dewpoint", "temperature", cur.dewPointC)}</span>
         </div>
         <div class="wc-stat">
           <span class="wc-stat-label">Pressure</span>
@@ -623,7 +625,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         <div class="wc-stat">
           <span class="wc-stat-label">Wind</span>
           <span class="wc-stat-value">${visuals.windArrowSvg(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
-          ${cur.windGustKmh != null ? `<span class="wc-stat-sub dimmed small">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
+          ${cur.windGustKmh != null ? `<span class="wc-stat-sub wc-dimmed">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
         </div>
         <div class="wc-stat">
           <span class="wc-stat-label">UV Index</span>
@@ -651,9 +653,9 @@ function forecastHeadsHtml(rows, config, timeOpts, fmt) {
     .map((r) => {
       const t = fmt(r.time || r.date, timeOpts, config.locale);
       return `<div class="wc-hcol">
-        <div class="wc-hcol-time dimmed small">${t}</div>
+        <div class="wc-hcol-time wc-dimmed">${t}</div>
         <div class="wc-hcol-icon">${visuals.iconSvg(r.icon, { size: 28 })}</div>
-        <div class="wc-hcol-wind">${visuals.windArrowSvg(r.windDirDeg, r.windKmh, { size: 14 })} <span class="small">${units.format("speed", r.windKmh, config.units.wind.list[0])}</span></div>
+        <div class="wc-hcol-wind">${visuals.windArrowSvg(r.windDirDeg, r.windKmh, { size: 14 })} <span>${units.format("speed", r.windKmh, config.units.wind.list[0])}</span></div>
       </div>`;
     })
     .join("");
@@ -667,7 +669,7 @@ function hourlyCardHtml(state, config, fmt = defaultFmt) {
     <div class="wc-card wc-hourly">
       <div class="wc-card-title">Hourly Forecast</div>
       <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-hourly-chart" height="64"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-hourly-chart" height="90"></canvas></div>
     </div>
   `;
 }
@@ -679,7 +681,7 @@ function dailyCardHtml(state, config, fmt = defaultFmt) {
     <div class="wc-card wc-daily">
       <div class="wc-card-title">Daily Forecast</div>
       <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="64"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="90"></canvas></div>
     </div>
   `;
 }
@@ -688,7 +690,7 @@ function soilForecastCardHtml(state, config) {
   return `
     <div class="wc-card wc-soil">
       <div class="wc-card-title">Soil Temp — ${config.soilForecastDays || 3}-Day</div>
-      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="64"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="90"></canvas></div>
     </div>
   `;
 }
@@ -715,7 +717,7 @@ function minutelyCardHtml(state, config) {
   return `
     <div class="wc-card wc-minutely">
       <div class="wc-card-title">Next Hour</div>
-      ${callout ? `<div class="wc-minutely-callout dimmed small">${escapeHtml(callout)}</div>` : ""}
+      ${callout ? `<div class="wc-minutely-callout wc-dimmed">${escapeHtml(callout)}</div>` : ""}
       <div class="wc-chart-wrap wc-chart-wrap-mini"><canvas id="wc-minutely-chart" height="28"></canvas></div>
     </div>
   `;
@@ -725,7 +727,7 @@ function minutelyCardHtml(state, config) {
 function weatherHtml(state, config, fmt = defaultFmt) {
   const cards = config.cards || {};
   let html = `<div class="wc-weather-conditions">`;
-  if (state.stale) html += `<div class="wc-stale-badge dimmed small">showing last known data</div>`;
+  if (state.stale) html += `<div class="wc-stale-badge wc-dimmed">showing last known data</div>`;
   if (cards.current !== false) html += currentCardHtml(state, config, fmt);
   if (cards.minutely !== false && state.minutely && state.minutely.length) html += minutelyCardHtml(state, config);
   if (cards.hourly !== false && state.hourly && state.hourly.length) html += hourlyCardHtml(state, config, fmt);
@@ -827,6 +829,35 @@ function precipLabelsPlugin(precipUnit, decimals) {
   };
 }
 
+/**
+ * Draws each point's value ("19°") above (or below, via `dy`) the line in
+ * the given colour, matching the reference module's labelled temperature
+ * lines (high in orange above, low in green below, near the precip bars).
+ */
+function pointLabelsPlugin(datasetLabel, { color, unit, decimals, dy = -6 }) {
+  return {
+    id: `wcPointLabels_${datasetLabel}`,
+    afterDatasetsDraw(chart) {
+      const dsIndex = chart.data.datasets.findIndex((d) => d.label === datasetLabel);
+      if (dsIndex === -1) return;
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (!meta || meta.hidden) return;
+      const values = chart.data.datasets[dsIndex].data;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "bold 9px sans-serif";
+      ctx.fillStyle = color;
+      ctx.textAlign = "center";
+      meta.data.forEach((point, i) => {
+        const v = values[i];
+        if (v == null) return;
+        ctx.fillText(`${v.toFixed(decimals)}${unit}`, point.x, point.y + dy);
+      });
+      ctx.restore();
+    },
+  };
+}
+
 /** rows: hourly or daily canonical rows. timeField: "time" | "date". isDaily adds a low-temp line. */
 function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) {
   const series = (isDaily ? config.dailySeries : config.hourlySeries) || {};
@@ -836,6 +867,9 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
     fmt(r[timeField], isDaily ? { weekday: "short" } : { hour: "numeric" }, config.locale)
   );
   const datasets = [];
+  const plugins = [];
+  const tempLabel = units.labelFor("temperature", tempUnit);
+  const tempDecimals = units.decimalsFor("temperature", tempUnit);
 
   if (series.temperature !== false) {
     const field = isDaily ? "tempMaxC" : "tempC";
@@ -849,6 +883,7 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
       pointRadius: 3,
       tension: 0.3,
     });
+    plugins.push(pointLabelsPlugin("Temperature", { color: "#f4c542", unit: tempLabel, decimals: tempDecimals, dy: -8 }));
     if (isDaily) {
       datasets.push({
         type: "line",
@@ -860,9 +895,9 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
         pointRadius: 0,
         tension: 0.3,
       });
+      plugins.push(pointLabelsPlugin("Low", { color: "#8bd346", unit: tempLabel, decimals: tempDecimals, dy: 12 }));
     }
   }
-  const plugins = [];
   if (series.precipitation !== false) {
     datasets.push({
       type: "bar",
@@ -1426,6 +1461,18 @@ const CARD_CSS = `.wc-weather-conditions {
 .wc-stale-badge {
   margin-bottom: 4px;
   color: #f2733c;
+  font-size: 0.85em;
+}
+
+/* De-emphasized text, fully self-contained. Deliberately NOT using
+   MagicMirror's own .dimmed/.small/.xsmall classes here: .small computes
+   to 20px (MM's page font-size, sized for room-distance reading -- it's
+   only "small" relative to MM's own larger headline sizes, not smaller
+   than normal), which silently overrode every sub-label's sizing with
+   nothing in this module able to out-cascade it, and blew out the
+   compact fixed-width layout everywhere it was used. */
+.wc-dimmed {
+  opacity: 0.65;
 }
 
 /* ---- current conditions ---- */
@@ -1462,12 +1509,14 @@ const CARD_CSS = `.wc-weather-conditions {
 
 .wc-feelslike {
   white-space: nowrap;
+  font-size: 0.85em;
 }
 
 .wc-summary {
   margin-top: 4px;
   font-style: italic;
   line-height: 1.25;
+  font-size: 0.85em;
 }
 
 .wc-current-stats {
@@ -1505,6 +1554,7 @@ const CARD_CSS = `.wc-weather-conditions {
 .wc-stat-sub {
   margin-top: 1px;
   white-space: nowrap;
+  font-size: 0.78em;
 }
 
 .wc-sunarc-wrap {
@@ -1576,11 +1626,11 @@ const CARD_CSS = `.wc-weather-conditions {
 .wc-chart-wrap {
   position: relative;
   width: 100%;
-  height: 64px;
+  height: 90px;
 }
 
 .wc-chart-wrap canvas {
-  max-height: 64px;
+  max-height: 90px;
 }
 
 .wc-chart-wrap-mini {
@@ -1593,6 +1643,11 @@ const CARD_CSS = `.wc-weather-conditions {
 
 .wc-minutely-callout {
   margin-bottom: 4px;
+  font-size: 0.9em;
+}
+
+.wc-loading {
+  font-size: 1em;
 }
 
 /* ---- unit cycling (see core/unitcycle.js) ---- */
