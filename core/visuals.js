@@ -194,6 +194,8 @@ function sunArcSvg({ sunrise, sunset, now = new Date(), width = 260, height = 84
     <line x1="${x0}" y1="${yBase}" x2="${x1}" y2="${yBase}" stroke="#3a4258" stroke-width="1" stroke-dasharray="2 3"/>
     <path d="M ${x0} ${yBase} Q ${midX} ${yTop} ${x1} ${yBase}" fill="none" stroke="#f4c542" stroke-width="2"/>
     ${isUp ? `<circle cx="${marker.x.toFixed(1)}" cy="${marker.y.toFixed(1)}" r="5" fill="#f4c542" id="${id}"/>` : ""}
+    ${sunGlyph(x0, yBase, 6)}
+    ${moonGlyph(x1, yBase, 6)}
     <text x="${x0}" y="${height - 4}" font-size="11" fill="#c7cede" text-anchor="start">${timeFmt(new Date(sunrise))}</text>
     <text x="${x1}" y="${height - 4}" font-size="11" fill="#c7cede" text-anchor="end">${timeFmt(new Date(sunset))}</text>
   </svg>`;

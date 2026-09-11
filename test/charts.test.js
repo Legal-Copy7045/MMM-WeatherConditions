@@ -24,11 +24,24 @@ test("lineBarChartConfig includes the precip-labels plugin when precipitation se
   assert.ok(cfg.plugins.some((p) => p.id === "wcPrecipLabels"));
 });
 
-test("lineBarChartConfig omits the plugin when precipitation series is off", () => {
+test("lineBarChartConfig omits the precip-labels plugin when precipitation series is off", () => {
   const config = baseConfig();
   config.hourlySeries.precipitation = false;
   const cfg = charts.lineBarChartConfig(hourlyRows, config, "time", false);
-  assert.equal(cfg.plugins.length, 0);
+  assert.ok(!cfg.plugins.some((p) => p.id === "wcPrecipLabels"));
+});
+
+test("lineBarChartConfig includes a point-labels plugin for the temperature line", () => {
+  const cfg = charts.lineBarChartConfig(hourlyRows, baseConfig(), "time", false);
+  assert.ok(cfg.plugins.some((p) => p.id === "wcPointLabels_Temperature"));
+});
+
+test("daily config additionally labels the Low line", () => {
+  const dailyRows = [
+    { date: "2026-01-01T00:00:00Z", tempMaxC: 10, tempMinC: 2, precipMm: 0, windKmh: 10 },
+  ];
+  const cfg = charts.lineBarChartConfig(dailyRows, baseConfig(), "date", true);
+  assert.ok(cfg.plugins.some((p) => p.id === "wcPointLabels_Low"));
 });
 
 test("precip-labels plugin draws text only for non-zero bars, in the configured unit", () => {
