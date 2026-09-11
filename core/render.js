@@ -51,12 +51,45 @@ function defaultFmt(iso, opts, locale) {
   }
 }
 
+// Every stat is kept to a single line (a fainter inline note tacked onto the
+// value, e.g. "62% · dew 12°", rather than a separate sub-line) so a stat
+// with extra detail (wind's gusts, humidity's dew point) doesn't force a
+// taller grid row than its neighbour and leave a lopsided gap under the
+// shorter cell beside it — a real layout bug in the old two-line version.
+function statHtml(label, valueHtml, noteHtml) {
+  return `<div class="wc-stat">
+    <span class="wc-stat-label">${label}</span>
+    <span class="wc-stat-value">${valueHtml}${noteHtml ? `<span class="wc-stat-note wc-dimmed"> · ${noteHtml}</span>` : ""}</span>
+  </div>`;
+}
+
 function currentCardHtml(state, config, fmt = defaultFmt) {
   const cur = state.current || {};
   const today = (state.daily || [])[0] || {};
-  const icon = visuals.conditionIconHtml(cur.icon, { size: 44 });
+  const icon = visuals.conditionIconHtml(cur.icon, { size: 36 });
   const uv = visuals.uvDescriptor(cur.uvIndex);
   const uc = (id, kind, val) => cyclingValue(config.units, id, kind, val);
+
+  const stats = [
+    statHtml(
+      "Humidity",
+      cur.humidityPct != null ? Math.round(cur.humidityPct) + "%" : "--",
+      cur.dewPointC != null ? `dew ${uc("wc-dewpoint", "temperature", cur.dewPointC)}` : ""
+    ),
+    statHtml("Pressure", uc("wc-pressure", "pressure", cur.pressureHpa)),
+    statHtml(
+      "Wind",
+      `${visuals.windArrowHtml(cur.windDirDeg, cur.windKmh, { size: 13 })} ${uc("wc-wind", "wind", cur.windKmh)}`,
+      cur.windGustKmh != null ? `gusts ${uc("wc-gust", "wind", cur.windGustKmh)}` : ""
+    ),
+    statHtml("UV Index", `<span style="color:${uv.color}">${cur.uvIndex != null ? Math.round(cur.uvIndex) : "--"} ${uv.label}</span>`),
+  ];
+  if (today.moonPhase != null) {
+    stats.push(statHtml("Moon", `${visuals.moonPhaseHtml(today.moonPhase, { size: 13 })} ${visuals.moonPhaseLabel(today.moonPhase)}`));
+  }
+  if (cur.soilTempC != null) {
+    stats.push(statHtml("Soil temp", uc("wc-soiltemp", "temperature", cur.soilTempC)));
+  }
 
   return `
     <div class="wc-card wc-current">
@@ -69,36 +102,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         </div>
       </div>
       ${today.summary ? `<div class="wc-summary wc-dimmed">${escapeHtml(today.summary)}</div>` : ""}
-      <div class="wc-current-stats">
-        <div class="wc-stat">
-          <span class="wc-stat-label">Humidity</span>
-          <span class="wc-stat-value">${cur.humidityPct != null ? Math.round(cur.humidityPct) + "%" : "--"}</span>
-          <span class="wc-stat-sub wc-dimmed">Dew point ${uc("wc-dewpoint", "temperature", cur.dewPointC)}</span>
-        </div>
-        <div class="wc-stat">
-          <span class="wc-stat-label">Pressure</span>
-          <span class="wc-stat-value">${uc("wc-pressure", "pressure", cur.pressureHpa)}</span>
-        </div>
-        <div class="wc-stat">
-          <span class="wc-stat-label">Wind</span>
-          <span class="wc-stat-value">${visuals.windArrowHtml(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
-          ${cur.windGustKmh != null ? `<span class="wc-stat-sub wc-dimmed">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
-        </div>
-        <div class="wc-stat">
-          <span class="wc-stat-label">UV Index</span>
-          <span class="wc-stat-value" style="color:${uv.color}">${cur.uvIndex != null ? Math.round(cur.uvIndex) : "--"} (${uv.label})</span>
-        </div>
-        ${
-          today.moonPhase != null
-            ? `<div class="wc-stat"><span class="wc-stat-label">Moon</span><span class="wc-stat-value">${visuals.moonPhaseHtml(today.moonPhase, { size: 16 })} ${visuals.moonPhaseLabel(today.moonPhase)}</span></div>`
-            : ""
-        }
-        ${
-          cur.soilTempC != null
-            ? `<div class="wc-stat"><span class="wc-stat-label">Soil temp</span><span class="wc-stat-value">${uc("wc-soiltemp", "temperature", cur.soilTempC)}</span></div>`
-            : ""
-        }
-      </div>
+      <div class="wc-current-stats">${stats.join("")}</div>
       <div class="wc-sunarc-wrap">${visuals.sunArcHtml({ sunrise: cur.sunrise, sunset: cur.sunset })}</div>
       ${visuals.windLegendHtml()}
     </div>
