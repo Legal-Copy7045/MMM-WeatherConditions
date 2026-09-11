@@ -96,6 +96,7 @@ class HaWeatherSource {
       source: a.source || "homeassistant",
       location: a.location,
       current: a.current || {},
+      minutely: a.minutely || [],
       hourly: a.hourly || [],
       daily: a.daily || [],
       alerts: a.alerts || [],
