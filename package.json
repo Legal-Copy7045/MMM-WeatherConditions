@@ -6,7 +6,7 @@
   "scripts": {
     "sync": "node scripts/sync-core.js && node scripts/build-card.js",
     "build:card": "node scripts/build-card.js",
-    "test": "node --test test/"
+    "test": "node --test"
   },
   "repository": {
     "type": "git",
