@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -94,6 +94,16 @@ class WeatherConditionsCoordinator(DataUpdateCoordinator):
                     core_soilforecast.parse_day_bucket_array(day_state.state if day_state else None)
                 )
             weather_state["soilForecast"] = core_soilforecast.build_soil_forecast(day_values)
+            # Day-bucket forecast sensors are the only soil data source for
+            # installs with no separate current-reading sensor (soil probes
+            # publishing forecasts don't necessarily also expose a live
+            # reading) -- fall back to day 0's bucket at the current hour so
+            # the current-conditions "Soil temp" stat isn't left blank when
+            # CONF_SOIL_TEMP_ENTITY isn't set but a forecast is configured.
+            if weather_state["current"].get("soilTempC") is None:
+                current_hour = datetime.now().hour
+                if current_hour < len(weather_state["soilForecast"]):
+                    weather_state["current"]["soilTempC"] = weather_state["soilForecast"][current_hour]["tempC"]
         else:
             weather_state["soilForecast"] = []
 

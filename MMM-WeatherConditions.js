@@ -56,7 +56,13 @@ Module.register("MMM-WeatherConditions", {
   },
 
   getStyles() {
-    return ["MMM-WeatherConditions.css"];
+    // Cache-bust with a per-process-start timestamp: Electron's kiosk window
+    // can hold onto a cached copy of this stylesheet across a plain process
+    // restart (pm2 restart, systemd restart) since only the Node server
+    // process bounced, not the browser's own HTTP cache. A changing query
+    // string forces a real refetch every time MM starts, without needing a
+    // manual hard-reload on the physical display after every CSS change.
+    return [`MMM-WeatherConditions.css?v=${Date.now()}`];
   },
 
   getScripts() {
