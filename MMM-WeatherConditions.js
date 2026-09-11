@@ -55,19 +55,22 @@ Module.register("MMM-WeatherConditions", {
   },
 
   getScripts() {
+    // MM only auto-prefixes bare filenames with no subdirectory — anything
+    // with a "/" (like "core/units.js") needs this.file() or it resolves
+    // relative to the server root instead of this module's folder.
     const scripts = [
-      "vendor/chart.umd.min.js",
-      "core/units.js",
-      "core/windscale.js",
-      "core/visuals.js",
-      "core/unitcycle.js",
-      "core/render.js",
-      "core/charts.js",
-      "core/state.js",
-      "core/conditions.js",
-      "core/soilforecast.js",
+      this.file("vendor/chart.umd.min.js"),
+      this.file("core/units.js"),
+      this.file("core/windscale.js"),
+      this.file("core/visuals.js"),
+      this.file("core/unitcycle.js"),
+      this.file("core/render.js"),
+      this.file("core/charts.js"),
+      this.file("core/state.js"),
+      this.file("core/conditions.js"),
+      this.file("core/soilforecast.js"),
     ];
-    if (this.config.mode === "homeassistant") scripts.push("ha_source.js");
+    if (this.config.mode === "homeassistant") scripts.push(this.file("ha_source.js"));
     return scripts;
   },
 
