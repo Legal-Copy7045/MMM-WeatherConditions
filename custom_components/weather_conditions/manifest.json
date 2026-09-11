@@ -1,0 +1,11 @@
+{
+  "domain": "weather_conditions",
+  "name": "Weather Conditions",
+  "codeowners": ["@Legal-Copy7045"],
+  "config_flow": true,
+  "documentation": "https://github.com/Legal-Copy7045/MMM-WeatherConditions",
+  "issue_tracker": "https://github.com/Legal-Copy7045/MMM-WeatherConditions/issues",
+  "iot_class": "local_polling",
+  "requirements": [],
+  "version": "0.1.0"
+}

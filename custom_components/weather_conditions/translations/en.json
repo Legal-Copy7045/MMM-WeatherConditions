@@ -1,0 +1,34 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Weather Conditions",
+        "description": "Pick the weather entity to base the current-conditions card and MagicMirror feed on. Any weather.* entity works (Met.no, OpenWeatherMap, AccuWeather, ...).",
+        "data": {
+          "weather_entity": "Weather entity"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This weather entity is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Weather Conditions options",
+        "description": "Optional supplemental sensors and alert thresholds.",
+        "data": {
+          "soil_temperature_entity": "Soil temperature sensor (optional)",
+          "uv_index_entity": "UV index sensor (optional, overrides the weather entity's own UV if set)",
+          "rain_rate_entity": "Rain rate sensor (optional)",
+          "soil_forecast_entities": "Soil-temperature forecast sensors, one per line, day 0 first (each holding a bracketed CSV of hourly values)",
+          "frost_below_c": "Frost alert below (°C)",
+          "heat_above_c": "Heat alert above (°C)",
+          "wind_above_kmh": "High wind alert, gusts above (km/h)",
+          "uv_at_or_above": "High UV alert at or above index"
+        }
+      }
+    }
+  }
+}
