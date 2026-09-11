@@ -56,13 +56,11 @@ Module.register("MMM-WeatherConditions", {
   },
 
   getStyles() {
-    // Cache-bust with a per-process-start timestamp: Electron's kiosk window
-    // can hold onto a cached copy of this stylesheet across a plain process
-    // restart (pm2 restart, systemd restart) since only the Node server
-    // process bounced, not the browser's own HTTP cache. A changing query
-    // string forces a real refetch every time MM starts, without needing a
-    // manual hard-reload on the physical display after every CSS change.
-    return [`MMM-WeatherConditions.css?v=${Date.now()}`];
+    // NOTE: a query string here (e.g. "?v=...") breaks MagicMirror's own
+    // file resolution for getStyles() -- confirmed live: it made the CSS
+    // fail to load entirely (unstyled, concatenated, right-aligned mess)
+    // rather than just cache-busting it. Keep this a bare filename.
+    return ["MMM-WeatherConditions.css"];
   },
 
   getScripts() {
