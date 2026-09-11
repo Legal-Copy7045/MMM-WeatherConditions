@@ -22,7 +22,7 @@ Either way, the integration republishes a normalized `sensor.<name>_status` with
 
 Optional extras (Configure → Options), available regardless of which source you picked:
 - Supplemental sensors that overlay onto the base weather entity: **soil temperature**, **UV index**, **rain rate** — useful since most weather integrations don't report these (or don't report UV) at all.
-- A **soil-temperature forecast**: point it at a set of "day-bucket" sensors (day 0, day 1, ...), each holding a bracketed CSV of ~24 hourly values for that day — the same shape some soil-temperature forecast sources publish and that an `apexcharts-card` `data_generator` can chart. The integration turns that into a proper multi-day hourly series.
+- A **soil-temperature forecast**: point it at a set of "day-bucket" sensors (day 0, day 1, ...), each holding a bracketed CSV of ~24 hourly values for that day — the same shape some soil-temperature forecast sources publish and that an `apexcharts-card` `data_generator` can chart. The integration turns that into a proper multi-day hourly series. If you don't also have a separate current-reading sensor for **soil temperature**, leave that field blank — the current-conditions "Soil temp" stat falls back to day 0's bucket at the current hour automatically.
 - Alert thresholds: frost, heat, high wind, high UV.
 
 ### MagicMirror, fed by Home Assistant (mode C)
