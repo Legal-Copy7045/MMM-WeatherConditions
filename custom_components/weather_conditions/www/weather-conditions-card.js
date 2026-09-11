@@ -810,10 +810,14 @@ if (typeof module === "object" && module.exports) {
  *              windKmh, windGustKmh, windDirDeg, uvIndex, cloudPct,
  *              visibilityKm, precipMm, soilTempC, rainRateMmh,
  *              condition, icon, isDay, sunrise (ISO), sunset (ISO) },
+ *   minutely: [{ time (ISO), precipMmh }],  // next-hour nowcast, OWM only
  *   hourly: [{ time (ISO), tempC, precipMm, precipProbPct, windKmh,
  *              windDirDeg, condition, icon }],
- *   daily: [{ date (ISO), tempMinC, tempMaxC, precipMm, precipProbPct,
- *             windKmh, windDirDeg, condition, icon, sunrise, sunset }]
+ *   daily: [{ date (ISO), tempMinC, tempMaxC, tempMornC, tempDayC,
+ *             tempEveC, tempNightC, precipMm, precipProbPct, windKmh,
+ *             windDirDeg, uvIndex, summary, moonPhase, moonrise, moonset,
+ *             condition, icon, sunrise, sunset }]  // day-part temps,
+ *             summary, and moon fields are OWM-only; null elsewhere
  * }
  */
 
@@ -889,6 +893,10 @@ function fromOpenWeatherMap(json) {
       sunrise: cur.sunrise ? new Date(cur.sunrise * 1000).toISOString() : null,
       sunset: cur.sunset ? new Date(cur.sunset * 1000).toISOString() : null,
     },
+    minutely: (json.minutely || []).map((m) => ({
+      time: new Date(m.dt * 1000).toISOString(),
+      precipMmh: m.precipitation ?? 0,
+    })),
     hourly: (json.hourly || []).map((h) => {
       const hw = (h.weather && h.weather[0]) || {};
       return {
@@ -904,14 +912,24 @@ function fromOpenWeatherMap(json) {
     }),
     daily: (json.daily || []).map((d) => {
       const dw = (d.weather && d.weather[0]) || {};
+      const t = d.temp || {};
       return {
         date: new Date(d.dt * 1000).toISOString(),
-        tempMinC: d.temp && d.temp.min,
-        tempMaxC: d.temp && d.temp.max,
+        tempMinC: t.min,
+        tempMaxC: t.max,
+        tempMornC: t.morn,
+        tempDayC: t.day,
+        tempEveC: t.eve,
+        tempNightC: t.night,
         precipMm: (d.rain || 0) + (d.snow || 0),
         precipProbPct: d.pop != null ? Math.round(d.pop * 100) : null,
         windKmh: d.wind_speed != null ? d.wind_speed * 3.6 : null,
         windDirDeg: d.wind_deg,
+        uvIndex: d.uvi,
+        summary: d.summary || null,
+        moonPhase: d.moon_phase,
+        moonrise: d.moonrise ? new Date(d.moonrise * 1000).toISOString() : null,
+        moonset: d.moonset ? new Date(d.moonset * 1000).toISOString() : null,
         condition: dw.main || "unknown",
         icon: OWM_ICON_MAP[dw.icon] || "cloudy",
         sunrise: d.sunrise ? new Date(d.sunrise * 1000).toISOString() : null,
@@ -998,6 +1016,7 @@ function fromOpenMeteo(json) {
       sunrise: dailyRows[0] ? dailyRows[0].sunrise : null,
       sunset: dailyRows[0] ? dailyRows[0].sunset : null,
     },
+    minutely: [],
     hourly: hourlyRows,
     daily: dailyRows,
     alerts: [],
@@ -1062,6 +1081,7 @@ function fromHaWeather(entity, { hourlyForecast = [], dailyForecast = [], extra 
     source: "homeassistant",
     location: { name: a.friendly_name || null, lat: null, lon: null },
     current,
+    minutely: [],
     hourly: hourlyForecast.map((f) => ({
       time: f.datetime,
       tempC: toBaseHa(f.temperature, "temperature", tempUnit),

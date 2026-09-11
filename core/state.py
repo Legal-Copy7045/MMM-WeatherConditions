@@ -62,6 +62,118 @@ def _to_base(value, kind, unit_code):
         return value
 
 
+OWM_ICON_MAP = {
+    "01d": "clear-day", "01n": "clear-night",
+    "02d": "partly-cloudy-day", "02n": "partly-cloudy-night",
+    "03d": "cloudy", "03n": "cloudy",
+    "04d": "overcast", "04n": "overcast",
+    "09d": "drizzle", "09n": "drizzle",
+    "10d": "rain", "10n": "rain",
+    "11d": "thunderstorm", "11n": "thunderstorm",
+    "13d": "snow", "13n": "snow",
+    "50d": "fog", "50n": "fog",
+}
+
+
+def _iso(unix_ts):
+    if unix_ts is None:
+        return None
+    return datetime.fromtimestamp(unix_ts, tz=timezone.utc).isoformat()
+
+
+def from_open_weather_map(payload):
+    """Normalize an OpenWeather One Call 3.0 response (`/data/3.0/onecall`).
+    Python port of state.js's fromOpenWeatherMap — keep in sync."""
+    cur = payload.get("current") or {}
+    cur_weather = ((cur.get("weather") or [{}])[0]) or {}
+    cur_icon = cur_weather.get("icon")
+
+    def hourly_row(h):
+        hw = ((h.get("weather") or [{}])[0]) or {}
+        rain = (h.get("rain") or {}).get("1h")
+        snow = (h.get("snow") or {}).get("1h")
+        pop = h.get("pop")
+        return {
+            "time": _iso(h.get("dt")),
+            "tempC": h.get("temp"),
+            "precipMm": rain or snow or 0,
+            "precipProbPct": round(pop * 100) if pop is not None else None,
+            "windKmh": h.get("wind_speed") * 3.6 if h.get("wind_speed") is not None else None,
+            "windDirDeg": h.get("wind_deg"),
+            "condition": hw.get("main", "unknown"),
+            "icon": OWM_ICON_MAP.get(hw.get("icon"), "cloudy"),
+        }
+
+    def daily_row(d):
+        dw = ((d.get("weather") or [{}])[0]) or {}
+        t = d.get("temp") or {}
+        pop = d.get("pop")
+        return {
+            "date": _iso(d.get("dt")),
+            "tempMinC": t.get("min"),
+            "tempMaxC": t.get("max"),
+            "tempMornC": t.get("morn"),
+            "tempDayC": t.get("day"),
+            "tempEveC": t.get("eve"),
+            "tempNightC": t.get("night"),
+            "precipMm": (d.get("rain") or 0) + (d.get("snow") or 0),
+            "precipProbPct": round(pop * 100) if pop is not None else None,
+            "windKmh": d.get("wind_speed") * 3.6 if d.get("wind_speed") is not None else None,
+            "windDirDeg": d.get("wind_deg"),
+            "uvIndex": d.get("uvi"),
+            "summary": d.get("summary"),
+            "moonPhase": d.get("moon_phase"),
+            "moonrise": _iso(d.get("moonrise")),
+            "moonset": _iso(d.get("moonset")),
+            "condition": dw.get("main", "unknown"),
+            "icon": OWM_ICON_MAP.get(dw.get("icon"), "cloudy"),
+            "sunrise": _iso(d.get("sunrise")),
+            "sunset": _iso(d.get("sunset")),
+        }
+
+    rain_1h = (cur.get("rain") or {}).get("1h")
+    snow_1h = (cur.get("snow") or {}).get("1h")
+
+    return {
+        "updatedAt": _iso(cur.get("dt")) or _now_iso(),
+        "source": "openweathermap",
+        "location": {"name": payload.get("timezone"), "lat": payload.get("lat"), "lon": payload.get("lon")},
+        "current": {
+            "tempC": cur.get("temp"),
+            "feelsLikeC": cur.get("feels_like"),
+            "humidityPct": cur.get("humidity"),
+            "dewPointC": cur.get("dew_point")
+            if cur.get("dew_point") is not None
+            else compute_dew_point_c(cur.get("temp"), cur.get("humidity")),
+            "pressureHpa": cur.get("pressure"),
+            "windKmh": cur.get("wind_speed") * 3.6 if cur.get("wind_speed") is not None else None,
+            "windGustKmh": cur.get("wind_gust") * 3.6 if cur.get("wind_gust") is not None else None,
+            "windDirDeg": cur.get("wind_deg"),
+            "uvIndex": cur.get("uvi"),
+            "cloudPct": cur.get("clouds"),
+            "visibilityKm": cur.get("visibility") / 1000 if cur.get("visibility") is not None else None,
+            "precipMm": rain_1h or snow_1h or 0,
+            "soilTempC": None,
+            "rainRateMmh": rain_1h or 0,
+            "condition": cur_weather.get("main", "unknown"),
+            "icon": OWM_ICON_MAP.get(cur_icon, "cloudy"),
+            "isDay": cur_icon.endswith("d") if cur_icon else True,
+            "sunrise": _iso(cur.get("sunrise")),
+            "sunset": _iso(cur.get("sunset")),
+        },
+        "minutely": [
+            {"time": _iso(m.get("dt")), "precipMmh": m.get("precipitation") or 0}
+            for m in (payload.get("minutely") or [])
+        ],
+        "hourly": [hourly_row(h) for h in (payload.get("hourly") or [])],
+        "daily": [daily_row(d) for d in (payload.get("daily") or [])],
+        "alerts": [
+            {"level": "warning", "label": a.get("event"), "reason": a.get("description")}
+            for a in (payload.get("alerts") or [])
+        ],
+    }
+
+
 def from_ha_weather(entity_state, attributes, hourly_forecast=None, daily_forecast=None, extra=None):
     """entity_state: the weather.* entity's state string.
     attributes: its attributes dict.
@@ -152,6 +264,7 @@ def from_ha_weather(entity_state, attributes, hourly_forecast=None, daily_foreca
         "source": "homeassistant",
         "location": {"name": a.get("friendly_name"), "lat": None, "lon": None},
         "current": current,
+        "minutely": [],
         "hourly": [hourly_row(f) for f in hourly_forecast],
         "daily": [daily_row(f) for f in daily_forecast],
         "alerts": [],

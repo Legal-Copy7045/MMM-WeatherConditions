@@ -13,9 +13,14 @@ Layout is inspired by a WIP MagicMirror weather module shared on r/MagicMirror (
 
 ### Home Assistant (recommended)
 
-Install via HACS (custom repository, category **Integration**), add the integration, and point it at any existing `weather.*` entity (Met.no is bundled with HA and needs no key/signup). It republishes a normalized `sensor.<name>_status` with the full current/hourly/daily/alerts payload as attributes, plus `_dew_point` and `_active_alerts` sensors, and installs the **`weather-conditions-card`** Lovelace card automatically.
+Install via HACS (custom repository, category **Integration**), add the integration, and pick one of two sources:
 
-Optional extras (Configure → Options):
+- **An existing `weather.*` entity** — Met.no (bundled with HA, no signup) or any other weather integration you already have. **Forecast support varies by integration** — confirmed the hard way that HA's own OpenWeatherMap integration entity doesn't support `weather.get_forecasts` at all, so hourly/daily stay empty with it. If that happens, check **Developer Tools → Actions → weather.get_forecasts** against your entity, or switch to a different one (Met.no reliably supports it).
+- **OpenWeatherMap One Call 3.0, polled directly** — sidesteps the above entirely: a guaranteed-complete feature set (current, hourly 48h, daily 8-day, government alerts, next-hour precipitation nowcast, UV, moon phase/rise/set, and a plain-English daily summary) regardless of what HA's own weather integrations happen to support. Needs a free API key from [openweathermap.org](https://openweathermap.org/api/one-call-3) with One Call 3.0 enabled — OWM requires a card on file even for the free 1,000-calls/day tier, but the default 5-minute poll only uses ~288 calls/day. Latitude/longitude default to your HA instance's configured location.
+
+Either way, the integration republishes a normalized `sensor.<name>_status` with the full payload as attributes, plus `_dew_point` and `_active_alerts` sensors, and installs the **`weather-conditions-card`** Lovelace card automatically.
+
+Optional extras (Configure → Options), available regardless of which source you picked:
 - Supplemental sensors that overlay onto the base weather entity: **soil temperature**, **UV index**, **rain rate** — useful since most weather integrations don't report these (or don't report UV) at all.
 - A **soil-temperature forecast**: point it at a set of "day-bucket" sensors (day 0, day 1, ...), each holding a bracketed CSV of ~24 hourly values for that day — the same shape some soil-temperature forecast sources publish and that an `apexcharts-card` `data_generator` can chart. The integration turns that into a proper multi-day hourly series.
 - Alert thresholds: frost, heat, high wind, high UV.
@@ -84,8 +89,8 @@ python -m unittest discover -s test -p "test_*.py"   # Python unit tests
 
 ## Known limitations (HA mode)
 
-- **Hourly/daily forecasts depend entirely on the chosen `weather.*` entity supporting HA's `get_forecasts` action.** Not all weather integrations do — HA's own `OpenWeatherMap` integration entity, for example, only exposes current conditions, no forecast at all. `Met.no` (HA's bundled default) and many others do. If the hourly/daily cards aren't showing anything, check **Developer Tools → Actions → weather.get_forecasts** against your chosen entity; if it errors, pick a different `weather.*` entity in the integration's setup.
-- **The sunrise/sunset arc only appears when the source provides sun times.** OpenWeather One Call and Open-Meteo both do (mode B); HA `weather.*` entities generally don't expose sunrise/sunset as attributes at all, and `sun.sun`'s `next_rising`/`next_setting` only ever point at the *next* occurrence (not necessarily today's pair), so mode C can't reliably derive an arc from it yet. The card just omits the arc gracefully rather than showing something wrong.
+- **If you pick the "existing weather entity" source, hourly/daily forecasts depend entirely on that entity supporting HA's `get_forecasts` action.** Not all weather integrations do — HA's own `OpenWeatherMap` integration entity, for example, only exposes current conditions, no forecast at all. `Met.no` (HA's bundled default) and many others do. If the hourly/daily cards aren't showing anything, check **Developer Tools → Actions → weather.get_forecasts** against your chosen entity, pick a different one, or switch the integration's source to **OpenWeatherMap polled directly**, which sidesteps this entirely.
+- **The sunrise/sunset arc only appears when the source provides sun times.** OpenWeatherMap (both mode B and the integration's direct-poll source) and Open-Meteo both do; wrapping an existing HA `weather.*` entity generally doesn't expose sunrise/sunset as an attribute at all, and `sun.sun`'s `next_rising`/`next_setting` only ever point at the *next* occurrence (not necessarily today's pair), so that path can't reliably derive an arc yet. The card just omits the arc gracefully rather than showing something wrong.
 
 ## Still on the list
 

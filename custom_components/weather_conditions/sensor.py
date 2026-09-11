@@ -14,7 +14,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import CONF_WEATHER_ENTITY, DOMAIN
+from .const import DOMAIN
 from .coordinator import WeatherConditionsCoordinator
 
 
@@ -33,13 +33,12 @@ class _BaseEntity(CoordinatorEntity):
     def __init__(self, coordinator: WeatherConditionsCoordinator, entry: ConfigEntry) -> None:
         super().__init__(coordinator)
         self._entry = entry
-        self._weather_entity_id = entry.data.get(CONF_WEATHER_ENTITY, entry.entry_id)
 
     @property
     def device_info(self) -> DeviceInfo:
         return DeviceInfo(
             identifiers={(DOMAIN, self._entry.entry_id)},
-            name=f"Weather Conditions ({self._weather_entity_id})",
+            name=self._entry.title,
             manufacturer="MMM-WeatherConditions",
         )
 

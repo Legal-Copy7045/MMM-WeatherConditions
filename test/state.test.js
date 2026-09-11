@@ -40,6 +40,40 @@ test("fromHaWeather overlays supplemental extra sensors", () => {
   assert.equal(s.current.icon, "clear-day");
 });
 
+test("fromOpenWeatherMap maps daily day-part temps, uv, summary, moon and minutely nowcast", () => {
+  const raw = {
+    lat: 40.7,
+    lon: -79.8,
+    current: {
+      dt: 1700000000,
+      temp: 18,
+      humidity: 60,
+      weather: [{ main: "Clouds", icon: "03d" }],
+    },
+    minutely: [{ dt: 1700000060, precipitation: 0.1 }],
+    daily: [
+      {
+        dt: 1700000000,
+        temp: { min: 12, max: 22, morn: 14, day: 20, eve: 18, night: 13 },
+        weather: [{ main: "Clear", icon: "01d" }],
+        uvi: 5,
+        summary: "Expect a sunny day",
+        moon_phase: 0.5,
+        pop: 0.1,
+      },
+    ],
+    alerts: [{ event: "Heat Advisory", description: "Stay hydrated" }],
+  };
+  const s = state.fromOpenWeatherMap(raw);
+  assert.equal(s.daily[0].tempDayC, 20);
+  assert.equal(s.daily[0].tempNightC, 13);
+  assert.equal(s.daily[0].uvIndex, 5);
+  assert.equal(s.daily[0].summary, "Expect a sunny day");
+  assert.equal(s.daily[0].moonPhase, 0.5);
+  assert.equal(s.minutely[0].precipMmh, 0.1);
+  assert.equal(s.alerts[0].label, "Heat Advisory");
+});
+
 test("fromHaWeather converts an imperial-unit weather entity to canonical base units", () => {
   // Regression: an HA weather entity reports in ITS OWN unit system (here:
   // OpenWeatherMap configured imperial) — the *_unit attributes say so, and
