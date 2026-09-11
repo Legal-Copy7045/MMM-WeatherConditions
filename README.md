@@ -43,7 +43,9 @@ Hourly and daily charts (Chart.js) show a temperature line labelled with its val
 
 The Daily Forecast card's chart alternates on a timer (`dailyGraphSwitchMs`, default 10s) between that day-by-day temperature+precip view and a multi-day soil-temperature chart (`soilForecastDays`, default 5), when `cards.soilForecast` is on and soil data is configured in the HA integration — the card's title swaps between "Daily Forecast" and "Soil Temp — N-Day" to match. There's no separate soil card anymore; it lives inside this toggle.
 
-The module is 320px wide by default, sized to match a sports-scoreboard-style module alongside it — there's no config option for width, edit the `.wc-weather-conditions` rule in `MMM-WeatherConditions.css` to change it.
+Condition, moon-phase, wind, and sunrise/sunset icons come from [weather-icons](https://github.com/erikflowers/weather-icons) (SIL OFL-1.1 font + MIT CSS), vendored at build time — no hand-drawn SVGs.
+
+The module is 375px wide by default, sized to match a sports-scoreboard-style module alongside it — there's no config option for width, edit the `.wc-weather-conditions` rule in `MMM-WeatherConditions.css` to change it.
 
 **Unit cycling now applies to the charts too**, not just the current-conditions card. Chart.js canvases can't take part in the CSS crossfade the header values use, so instead the hourly/daily/soil charts periodically rebuild themselves against the next configured temperature unit — a hard swap on the same `cycleMs` interval, rather than a fade.
 

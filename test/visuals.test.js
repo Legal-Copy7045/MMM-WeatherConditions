@@ -17,46 +17,63 @@ test("moonPhaseLabel handles null gracefully", () => {
   assert.equal(visuals.moonPhaseLabel(null), "--");
 });
 
-test("moonPhaseSvg returns a non-empty SVG string for every cardinal phase", () => {
+test("moonPhaseHtml returns a wi icon glyph for every cardinal phase", () => {
   [0, 0.25, 0.5, 0.75].forEach((p) => {
-    const svg = visuals.moonPhaseSvg(p, { size: 16 });
-    assert.ok(svg.startsWith("<svg"));
-    assert.ok(svg.includes("</svg>"));
+    const html = visuals.moonPhaseHtml(p, { size: 16 });
+    assert.match(html, /<i class="wi wi-moon-\S+ wc-moon-icon"/);
   });
 });
 
-test("moonPhaseSvg returns empty string for null phase", () => {
-  assert.equal(visuals.moonPhaseSvg(null), "");
+test("moonPhaseHtml returns empty string for null phase", () => {
+  assert.equal(visuals.moonPhaseHtml(null), "");
 });
 
-/** Pulls the two elliptical-arc sweep-flag digits out of the generated path. */
-function sweepFlags(svg) {
-  const m = svg.match(/A [\d.]+ [\d.]+ 0 0 (\d)[^A]*A [\d.]+ [\d.]+ 0 0 (\d)/);
-  return [Number(m[1]), Number(m[2])];
-}
-
-// Regression snapshot of the sweep-flag pairs at each phase, confirmed
-// correct by actually rendering all nine phases in a browser and checking
-// the shape (dark new moon -> growing right crescent -> half at first
-// quarter -> light full moon -> shrinking left crescent -> dark again) --
-// a hand-derived relational assertion got the sweep-flag direction backwards
-// once already (top->bottom vs bottom->top arcs bulge to OPPOSITE screen
-// sides for the SAME flag value, not the same side), so this locks in the
-// verified-by-eye output instead of re-deriving the geometry in the test.
-test("moonPhaseSvg: sweep-flag pairs match the visually-verified render at each phase", () => {
-  assert.deepEqual(sweepFlags(visuals.moonPhaseSvg(0)), [0, 1]); // new moon
-  assert.deepEqual(sweepFlags(visuals.moonPhaseSvg(0.1)), [0, 1]); // waxing crescent
-  assert.deepEqual(sweepFlags(visuals.moonPhaseSvg(0.25)), [1, 1]); // first quarter
-  assert.deepEqual(sweepFlags(visuals.moonPhaseSvg(0.4)), [1, 1]); // waxing gibbous
-  assert.deepEqual(sweepFlags(visuals.moonPhaseSvg(0.5)), [0, 0]); // full moon
-  assert.deepEqual(sweepFlags(visuals.moonPhaseSvg(0.6)), [0, 0]); // waning gibbous
-  assert.deepEqual(sweepFlags(visuals.moonPhaseSvg(0.75)), [1, 0]); // last quarter
-  assert.deepEqual(sweepFlags(visuals.moonPhaseSvg(0.9)), [1, 0]); // waning crescent
+// Regression check that the four cardinal phases map to the icon set's four
+// unambiguous cardinal glyphs, and that upstream's inconsistent class-name
+// spelling ("waxing-cresent" vs "waning-crescent" — a real typo in the
+// weather-icons library, not ours) is reproduced exactly since these are
+// literal CSS class names the vendored font's CSS defines.
+test("moonPhaseHtml: cardinal phases map to the expected icon classes", () => {
+  assert.match(visuals.moonPhaseHtml(0), /wi-moon-new/);
+  assert.match(visuals.moonPhaseHtml(0.25), /wi-moon-first-quarter/);
+  assert.match(visuals.moonPhaseHtml(0.5), /wi-moon-full/);
+  assert.match(visuals.moonPhaseHtml(0.75), /wi-moon-3rd-quarter/);
 });
 
-test("iconSvg returns a non-empty SVG for a known condition", () => {
-  const svg = visuals.iconSvg("rain", { size: 32 });
-  assert.ok(svg.includes("<svg"));
+test("moonPhaseHtml: waxing phases use the upstream-typo'd 'cresent' class, waning phases the correctly-spelled 'crescent'", () => {
+  assert.match(visuals.moonPhaseHtml(0.1), /wi-moon-waxing-cresent-\d/);
+  assert.match(visuals.moonPhaseHtml(0.9), /wi-moon-waning-crescent-\d/);
+});
+
+test("conditionIconHtml returns a wi icon glyph for a known condition", () => {
+  const html = visuals.conditionIconHtml("rain", { size: 32 });
+  assert.match(html, /<i class="wi wi-rain wc-icon wc-icon-rain"/);
+});
+
+test("conditionIconHtml falls back to a generic cloud glyph for an unknown condition key", () => {
+  const html = visuals.conditionIconHtml("not-a-real-condition", { size: 32 });
+  assert.match(html, /wi-cloud/);
+});
+
+test("windArrowHtml rotates by direction + 180deg and colours by wind speed", () => {
+  const html = visuals.windArrowHtml(90, 10, { size: 14 });
+  assert.match(html, /<i class="wi wi-wind-default wc-wind-arrow"/);
+  assert.match(html, /rotate\(270deg\)/);
+});
+
+test("sunArcHtml returns empty string when sunrise/sunset are unknown", () => {
+  assert.equal(visuals.sunArcHtml({ sunrise: null, sunset: null }), "");
+});
+
+test("sunArcHtml includes sunrise/sunset icon glyphs and the arc svg", () => {
+  const html = visuals.sunArcHtml({
+    sunrise: "2026-01-01T07:00:00Z",
+    sunset: "2026-01-01T17:00:00Z",
+    now: new Date("2026-01-01T12:00:00Z"),
+  });
+  assert.match(html, /wi-sunrise/);
+  assert.match(html, /wi-sunset/);
+  assert.match(html, /<svg/);
 });
 
 test("uvDescriptor buckets are monotonically increasing severity", () => {

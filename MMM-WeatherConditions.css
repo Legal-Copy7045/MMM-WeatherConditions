@@ -1,7 +1,89 @@
+/* Icon glyphs from erikflowers/weather-icons (SIL OFL-1.1 font + MIT CSS),
+   vendored by scripts/sync-core.js. Relative url() here resolves against
+   this module's own folder -- the Lovelace card's embedded copy of this
+   file gets this url() rewritten to an absolute /weather_conditions_static/
+   path by scripts/build-card.js, since a shadow-DOM <style> tag resolves
+   relative url()s against the host dashboard's URL, not the card's. */
+@font-face {
+  font-family: "weathericons";
+  src: url("vendor/weathericons-regular-webfont.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.wi {
+  display: inline-block;
+  font-family: "weathericons";
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Codepoints extracted from node_modules/weather-icons/css/weather-icons.css
+   -- only the glyphs this module actually uses. */
+.wi-day-sunny:before { content: "\f00d"; }
+.wi-night-clear:before { content: "\f02e"; }
+.wi-day-cloudy:before { content: "\f002"; }
+.wi-night-alt-cloudy:before { content: "\f086"; }
+.wi-cloud:before { content: "\f041"; }
+.wi-cloudy:before { content: "\f013"; }
+.wi-fog:before { content: "\f014"; }
+.wi-day-fog:before { content: "\f003"; }
+.wi-night-fog:before { content: "\f04a"; }
+.wi-showers:before { content: "\f01a"; }
+.wi-day-showers:before { content: "\f009"; }
+.wi-night-alt-showers:before { content: "\f029"; }
+.wi-rain:before { content: "\f019"; }
+.wi-day-rain:before { content: "\f008"; }
+.wi-night-alt-rain:before { content: "\f028"; }
+.wi-day-sleet:before { content: "\f0b2"; }
+.wi-night-alt-sleet:before { content: "\f0b4"; }
+.wi-day-snow:before { content: "\f00a"; }
+.wi-night-alt-snow:before { content: "\f02a"; }
+.wi-day-thunderstorm:before { content: "\f010"; }
+.wi-night-alt-thunderstorm:before { content: "\f02d"; }
+.wi-sunrise:before { content: "\f051"; }
+.wi-sunset:before { content: "\f052"; }
+.wi-wind-default:before { content: "\f0b1"; }
+.wi-moon-new:before { content: "\f095"; }
+.wi-moon-waxing-cresent-1:before { content: "\f096"; }
+.wi-moon-waxing-cresent-2:before { content: "\f097"; }
+.wi-moon-waxing-cresent-3:before { content: "\f098"; }
+.wi-moon-waxing-cresent-4:before { content: "\f099"; }
+.wi-moon-waxing-cresent-5:before { content: "\f09a"; }
+.wi-moon-waxing-cresent-6:before { content: "\f09b"; }
+.wi-moon-first-quarter:before { content: "\f09c"; }
+.wi-moon-waxing-gibbous-1:before { content: "\f09d"; }
+.wi-moon-waxing-gibbous-2:before { content: "\f09e"; }
+.wi-moon-waxing-gibbous-3:before { content: "\f09f"; }
+.wi-moon-waxing-gibbous-4:before { content: "\f0a0"; }
+.wi-moon-waxing-gibbous-5:before { content: "\f0a1"; }
+.wi-moon-waxing-gibbous-6:before { content: "\f0a2"; }
+.wi-moon-full:before { content: "\f0a3"; }
+.wi-moon-waning-gibbous-1:before { content: "\f0a4"; }
+.wi-moon-waning-gibbous-2:before { content: "\f0a5"; }
+.wi-moon-waning-gibbous-3:before { content: "\f0a6"; }
+.wi-moon-waning-gibbous-4:before { content: "\f0a7"; }
+.wi-moon-waning-gibbous-5:before { content: "\f0a8"; }
+.wi-moon-waning-gibbous-6:before { content: "\f0a9"; }
+.wi-moon-3rd-quarter:before { content: "\f0aa"; }
+.wi-moon-waning-crescent-1:before { content: "\f0ab"; }
+.wi-moon-waning-crescent-2:before { content: "\f0ac"; }
+.wi-moon-waning-crescent-3:before { content: "\f0ad"; }
+.wi-moon-waning-crescent-4:before { content: "\f0ae"; }
+.wi-moon-waning-crescent-5:before { content: "\f0af"; }
+.wi-moon-waning-crescent-6:before { content: "\f0b0"; }
+
 .wc-weather-conditions {
   color: #eef1f8;
   font-family: inherit;
-  width: 320px; /* matches the sports-scoreboard module's rendered width */
+  /* MMM-MyScoreboard shrink-wraps to its content instead of holding a fixed
+     width -- it measured 325px with no games showing and 375px once a live
+     game row rendered ("CHC PIT @ 14:20"). Matching its populated width
+     since that's its normal state most of the day. */
+  width: 375px;
   /* Absolute, not relative: MagicMirror's own page font-size (~20px, sized
      for room-distance reading) is much larger than a typical browser
      default, and every nested rule below is em-based off this value — an
@@ -50,10 +132,8 @@
   gap: 8px;
 }
 
-.wc-current-icon svg {
+.wc-current-icon .wi {
   display: block;
-  width: 44px;
-  height: 44px;
 }
 
 .wc-current-temp {
@@ -115,7 +195,7 @@
   gap: 3px;
 }
 
-.wc-stat-value svg {
+.wc-stat-value .wi {
   flex: none;
 }
 
@@ -172,10 +252,8 @@
   font-size: 0.85em;
 }
 
-.wc-hcol-icon svg {
+.wc-hcol-icon .wi {
   display: block;
-  width: 20px;
-  height: 20px;
 }
 
 .wc-hcol-wind {
@@ -186,10 +264,6 @@
   font-size: 0.8em;
 }
 
-.wc-hcol-wind svg {
-  width: 11px;
-  height: 11px;
-}
 
 .wc-chart-wrap {
   position: relative;

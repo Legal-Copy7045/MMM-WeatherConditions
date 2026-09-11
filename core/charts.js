@@ -14,19 +14,26 @@ const deps = (() => {
 })();
 const { units, windscale } = deps;
 
-function baseChartOptions() {
+/** `includePrecip: false` drops the right-hand precip axis entirely (e.g. the
+ * soil chart, which has no precipitation series) while keeping the same x/temp
+ * axis look as the daily/hourly charts, so the two charts read as the same
+ * graph with a different line rather than a differently-styled one. */
+function baseChartOptions({ includePrecip = true } = {}) {
   const tickFont = { size: 9 };
+  const scales = {
+    x: { ticks: { color: "#c7cede", font: tickFont }, grid: { color: "#2a3247" } },
+    temp: { position: "left", ticks: { color: "#f4c542", font: tickFont }, grid: { color: "#2a3247" } },
+  };
+  if (includePrecip) {
+    scales.precip = { position: "right", beginAtZero: true, suggestedMax: 5, ticks: { color: "#5aa7ff", font: tickFont }, grid: { display: false } };
+  }
   return {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
     layout: { padding: 0 },
     plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { color: "#c7cede", font: tickFont }, grid: { color: "#2a3247" } },
-      temp: { position: "left", ticks: { color: "#f4c542", font: tickFont }, grid: { color: "#2a3247" } },
-      precip: { position: "right", beginAtZero: true, suggestedMax: 5, ticks: { color: "#5aa7ff", font: tickFont }, grid: { display: false } },
-    },
+    scales,
   };
 }
 
@@ -73,7 +80,7 @@ function precipLabelsPlugin(precipUnit, decimals) {
  * the given colour, matching the reference module's labelled temperature
  * lines (high in orange above, low in green below, near the precip bars).
  */
-function pointLabelsPlugin(datasetLabel, { color, unit, decimals, dy = -6 }) {
+function pointLabelsPlugin(datasetLabel, { color, unit, decimals, dy = -6, onlyIndex = null }) {
   return {
     id: `wcPointLabels_${datasetLabel}`,
     afterDatasetsDraw(chart) {
@@ -88,6 +95,7 @@ function pointLabelsPlugin(datasetLabel, { color, unit, decimals, dy = -6 }) {
       ctx.fillStyle = color;
       ctx.textAlign = "center";
       meta.data.forEach((point, i) => {
+        if (onlyIndex != null && i !== onlyIndex) return;
         const v = values[i];
         if (v == null) return;
         ctx.fillText(`${v.toFixed(decimals)}${unit}`, point.x, point.y + dy);
@@ -162,26 +170,43 @@ function dailyChartConfig(state, config, fmt) {
   return lineBarChartConfig(rows, config, "date", true, fmt);
 }
 
+/**
+ * Same axis setup and tick styling as the daily temperature chart
+ * (lineBarChartConfig's "Temperature" dataset) — built from soil data
+ * instead of meteo data, so switching between the two charts (see
+ * MMM-WeatherConditions.js's daily/soil toggle) reads as the same graph
+ * with a different line, rather than a visually distinct one. Unlike the
+ * daily chart's ~5 labelled points, this is an hourly series over several
+ * days (100+ points), so it skips per-point markers/labels — those would
+ * just overlap into noise at this density — and only labels the current
+ * hour's reading, the one point a viewer actually wants at a glance.
+ */
 function soilChartConfig(state, config, fmt = defaultFmt) {
   const hours = (config.soilForecastDays || 5) * 24;
   const rows = (state.soilForecast || []).slice(0, hours);
   const tempUnit = config.units.temperature.list[0];
+  const tempLabel = units.labelFor("temperature", tempUnit);
+  const tempDecimals = units.decimalsFor("temperature", tempUnit);
   return {
     type: "line",
     data: {
       labels: rows.map((r) => fmt(r.time, { weekday: "short", hour: "numeric" }, config.locale)),
       datasets: [
         {
+          type: "line",
           label: "Soil temp",
+          yAxisID: "temp",
           data: rows.map((r) => units.fromBase("temperature", r.tempC, tempUnit)),
           borderColor: "#8bd346",
           backgroundColor: "transparent",
-          tension: 0.3,
           pointRadius: 0,
+          pointHoverRadius: 3,
+          tension: 0.3,
         },
       ],
     },
-    options: baseChartOptions(),
+    options: baseChartOptions({ includePrecip: false }),
+    plugins: [pointLabelsPlugin("Soil temp", { color: "#8bd346", unit: tempLabel, decimals: tempDecimals, dy: -8, onlyIndex: 0 })],
   };
 }
 
