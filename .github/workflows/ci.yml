@@ -45,3 +45,7 @@ jobs:
       - uses: hacs/action@main
         with:
           category: integration
+          # Brand assets are submitted separately to home-assistant/brands and
+          # aren't required for a HACS custom-repository install; only the
+          # default-store submission needs that PR merged first.
+          ignore: brands
