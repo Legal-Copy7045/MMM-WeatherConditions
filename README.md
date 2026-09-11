@@ -35,9 +35,11 @@ Optional extras (Configure → Options), available regardless of which source yo
 
 ## Current-conditions card
 
-Icon + temperature + condition, feels-like, humidity with dew point, pressure, wind speed with a coloured direction arrow and gusts, UV index with its descriptor (low/moderate/high/very high/extreme), a sunrise→sunset arc with a marker for the sun's current position, and the wind-speed colour legend — the same colour scale colours the arrows in the hourly/daily charts, so one colour means the same wind speed everywhere.
+Icon + temperature + condition, feels-like, today's plain-English summary (OWM only), humidity with dew point, pressure, wind speed with a coloured direction arrow and gusts, UV index with its descriptor (low/moderate/high/very high/extreme), tonight's moon phase, a sunrise→sunset arc with a marker for the sun's current position, and the wind-speed colour legend — the same colour scale colours the arrows in the hourly/daily charts, so one colour means the same wind speed everywhere.
 
-Hourly and daily charts (Chart.js) show a temperature line (points coloured by wind speed), precipitation bars, and a wind arrow + icon above each point. Every card, and every series within the hourly/daily charts, can be switched on or off independently (`cards`, `hourlySeries`, `dailySeries`).
+**Next Hour** (OWM only, needs `minutely` data): a glanceable callout — "Rain starting in 12 min", "Rain ending in 8 min", "Rain for the next hour", or "No rain expected in the next hour" — above a dense, label-free area chart of the next 60 minutes' precipitation rate.
+
+Hourly and daily charts (Chart.js) show a temperature line (points coloured by wind speed), precipitation bars labelled with their amount (e.g. "0.5 mm") when non-zero, and a wind arrow + icon above each point. Every card, and every series within the hourly/daily charts, can be switched on or off independently (`cards`, `hourlySeries`, `dailySeries`).
 
 ## Unit cycling
 
@@ -45,7 +47,7 @@ Hourly and daily charts (Chart.js) show a temperature line (points coloured by w
 units: {
   temperature: { list: ["C", "F"], cycleMs: 6000, fadeMs: 600 },
   pressure:    { list: ["hPa", "inHg"], cycleMs: 6000, fadeMs: 600 },
-  wind:        { list: ["kmh", "mph", "kn"], cycleMs: 8000, fadeMs: 700 },
+  wind:        { list: ["kmh", "kn"], cycleMs: 8000, fadeMs: 700 },
   precipitation: { list: ["mm"] },
   visibility:    { list: ["km"] },
 }

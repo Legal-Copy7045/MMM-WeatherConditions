@@ -38,6 +38,36 @@ function defaultFmt(iso, opts, locale) {
   }
 }
 
+/**
+ * Draws the precip amount ("0.5 mm") above each non-zero precipitation bar,
+ * matching the labelled bars in the reference module's hourly/daily charts.
+ * A plain Chart.js plugin (afterDatasetsDraw hook) rather than pulling in
+ * chartjs-plugin-datalabels, to keep the dependency footprint small.
+ */
+function precipLabelsPlugin(precipUnit, decimals) {
+  return {
+    id: "wcPrecipLabels",
+    afterDatasetsDraw(chart) {
+      const dsIndex = chart.data.datasets.findIndex((d) => d.label === "Precipitation");
+      if (dsIndex === -1) return;
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (!meta || meta.hidden) return;
+      const values = chart.data.datasets[dsIndex].data;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "9px sans-serif";
+      ctx.fillStyle = "#c7cede";
+      ctx.textAlign = "center";
+      meta.data.forEach((bar, i) => {
+        const v = values[i];
+        if (!v) return;
+        ctx.fillText(`${v.toFixed(decimals)} ${precipUnit}`, bar.x, bar.y - 4);
+      });
+      ctx.restore();
+    },
+  };
+}
+
 /** rows: hourly or daily canonical rows. timeField: "time" | "date". isDaily adds a low-temp line. */
 function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) {
   const series = (isDaily ? config.dailySeries : config.hourlySeries) || {};
@@ -73,6 +103,7 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
       });
     }
   }
+  const plugins = [];
   if (series.precipitation !== false) {
     datasets.push({
       type: "bar",
@@ -81,9 +112,10 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
       data: rows.map((r) => units.fromBase("lengthSmall", r.precipMm, precipUnit)),
       backgroundColor: "#5aa7ffaa",
     });
+    plugins.push(precipLabelsPlugin(units.labelFor("lengthSmall", precipUnit), units.decimalsFor("lengthSmall", precipUnit)));
   }
 
-  return { data: { labels, datasets }, options: baseChartOptions() };
+  return { data: { labels, datasets }, options: baseChartOptions(), plugins };
 }
 
 function hourlyChartConfig(state, config, fmt) {
@@ -120,7 +152,47 @@ function soilChartConfig(state, config, fmt = defaultFmt) {
   };
 }
 
-const __exports = { baseChartOptions, lineBarChartConfig, hourlyChartConfig, dailyChartConfig, soilChartConfig };
+/** Dense, label-free area chart for the next-hour precipitation nowcast. */
+function minutelyChartConfig(state) {
+  const rows = state.minutely || [];
+  return {
+    type: "line",
+    data: {
+      labels: rows.map(() => ""),
+      datasets: [
+        {
+          data: rows.map((r) => r.precipMmh || 0),
+          borderColor: "#5aa7ff",
+          backgroundColor: "#5aa7ff44",
+          fill: true,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          tension: 0.25,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      layout: { padding: 0 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { display: false, beginAtZero: true, suggestedMax: 2 },
+      },
+    },
+  };
+}
+
+const __exports = {
+  baseChartOptions,
+  lineBarChartConfig,
+  hourlyChartConfig,
+  dailyChartConfig,
+  soilChartConfig,
+  minutelyChartConfig,
+};
 if (typeof module === "object" && module.exports) {
   module.exports = __exports;
 } else {

@@ -32,6 +32,7 @@ Module.register("MMM-WeatherConditions", {
 
     cards: {
       current: true,
+      minutely: true,
       hourly: true,
       daily: true,
       soilForecast: true,
@@ -165,6 +166,14 @@ Module.register("MMM-WeatherConditions", {
 
   renderCharts(s) {
     const cards = this.config.cards;
+    if (cards.minutely !== false && s.minutely && s.minutely.length) {
+      const canvas = document.getElementById("wc-minutely-chart");
+      if (canvas) {
+        this._destroyChart("_minutelyChart");
+        const cfg = WeatherCore.charts.minutelyChartConfig(s);
+        this._minutelyChart = new Chart(canvas.getContext("2d"), cfg);
+      }
+    }
     if (cards.hourly && s.hourly && s.hourly.length) {
       const canvas = document.getElementById("wc-hourly-chart");
       if (canvas) {

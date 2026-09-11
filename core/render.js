@@ -53,6 +53,7 @@ function defaultFmt(iso, opts, locale) {
 
 function currentCardHtml(state, config, fmt = defaultFmt) {
   const cur = state.current || {};
+  const today = (state.daily || [])[0] || {};
   const icon = visuals.iconSvg(cur.icon, { size: 64 });
   const uv = visuals.uvDescriptor(cur.uvIndex);
   const uc = (id, kind, val) => cyclingValue(config.units, id, kind, val);
@@ -67,6 +68,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
           <div class="wc-feelslike dimmed small">Feels like ${uc("wc-temp-feels", "temperature", cur.feelsLikeC)}</div>
         </div>
       </div>
+      ${today.summary ? `<div class="wc-summary dimmed small">${escapeHtml(today.summary)}</div>` : ""}
       <div class="wc-current-stats">
         <div class="wc-stat">
           <span class="wc-stat-label">Humidity</span>
@@ -86,6 +88,11 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
           <span class="wc-stat-label">UV Index</span>
           <span class="wc-stat-value" style="color:${uv.color}">${cur.uvIndex != null ? Math.round(cur.uvIndex) : "--"} (${uv.label})</span>
         </div>
+        ${
+          today.moonPhase != null
+            ? `<div class="wc-stat"><span class="wc-stat-label">Moon</span><span class="wc-stat-value">${visuals.moonPhaseSvg(today.moonPhase, { size: 16 })} ${visuals.moonPhaseLabel(today.moonPhase)}</span></div>`
+            : ""
+        }
         ${
           cur.soilTempC != null
             ? `<div class="wc-stat"><span class="wc-stat-label">Soil temp</span><span class="wc-stat-value">${uc("wc-soiltemp", "temperature", cur.soilTempC)}</span></div>`
@@ -145,12 +152,41 @@ function soilForecastCardHtml(state, config) {
   `;
 }
 
+/**
+ * A short glanceable line describing the next hour, derived from a
+ * `minutely` nowcast series: "Rain starting in 12 min", "Rain ending in
+ * 8 min", "Rain for the next hour", or "No rain expected in the next hour".
+ */
+function minutelyCalloutText(minutely, thresholdMmh = 0.1) {
+  const rows = minutely || [];
+  if (!rows.length) return "";
+  const isWet = (r) => (r.precipMmh || 0) >= thresholdMmh;
+  const rainingNow = isWet(rows[0]);
+  const changeIdx = rows.findIndex((r, i) => i > 0 && isWet(r) !== rainingNow);
+  if (rainingNow) {
+    return changeIdx === -1 ? "Rain for the next hour" : `Rain ending in ${changeIdx} min`;
+  }
+  return changeIdx === -1 ? "No rain expected in the next hour" : `Rain starting in ${changeIdx} min`;
+}
+
+function minutelyCardHtml(state, config) {
+  const callout = minutelyCalloutText(state.minutely);
+  return `
+    <div class="wc-card wc-minutely">
+      <div class="wc-card-title">Next Hour</div>
+      ${callout ? `<div class="wc-minutely-callout dimmed small">${escapeHtml(callout)}</div>` : ""}
+      <div class="wc-chart-wrap wc-chart-wrap-mini"><canvas id="wc-minutely-chart" height="28"></canvas></div>
+    </div>
+  `;
+}
+
 /** Full module markup for a given state + config (skips cards config disables). */
 function weatherHtml(state, config, fmt = defaultFmt) {
   const cards = config.cards || {};
   let html = `<div class="wc-weather-conditions">`;
   if (state.stale) html += `<div class="wc-stale-badge dimmed small">showing last known data</div>`;
   if (cards.current !== false) html += currentCardHtml(state, config, fmt);
+  if (cards.minutely !== false && state.minutely && state.minutely.length) html += minutelyCardHtml(state, config);
   if (cards.hourly !== false && state.hourly && state.hourly.length) html += hourlyCardHtml(state, config, fmt);
   if (cards.daily !== false && state.daily && state.daily.length) html += dailyCardHtml(state, config, fmt);
   if (cards.soilForecast && state.soilForecast && state.soilForecast.length) html += soilForecastCardHtml(state, config);
@@ -160,6 +196,8 @@ function weatherHtml(state, config, fmt = defaultFmt) {
 
 const __exports = {
   currentCardHtml,
+  minutelyCardHtml,
+  minutelyCalloutText,
   hourlyCardHtml,
   dailyCardHtml,
   soilForecastCardHtml,

@@ -108,6 +108,53 @@ function windLegendHtml() {
   </div>`;
 }
 
+const MOON_PHASE_LABELS = [
+  { max: 0.03, label: "new moon" },
+  { max: 0.22, label: "waxing crescent" },
+  { max: 0.28, label: "first quarter" },
+  { max: 0.47, label: "waxing gibbous" },
+  { max: 0.53, label: "full moon" },
+  { max: 0.72, label: "waning gibbous" },
+  { max: 0.78, label: "last quarter" },
+  { max: 0.97, label: "waning crescent" },
+  { max: 1.01, label: "new moon" },
+];
+
+/** phase: 0 = new moon, 0.5 = full moon, 1 = next new moon (OWM's moon_phase convention). */
+function moonPhaseLabel(phase) {
+  if (phase == null) return "--";
+  const p = ((phase % 1) + 1) % 1;
+  const hit = MOON_PHASE_LABELS.find((s) => p <= s.max);
+  return hit ? hit.label : "--";
+}
+
+/** Lit-fraction silhouette via a terminator ellipse — standard moon-phase-icon technique. */
+function moonPhaseSvg(phase, { size = 24 } = {}) {
+  if (phase == null) return "";
+  const p = ((phase % 1) + 1) % 1;
+  const r = size / 2 - 1;
+  const cx = size / 2;
+  const cy = size / 2;
+  const theta = p * 2 * Math.PI;
+  const rx = Math.abs(r * Math.cos(theta));
+  const outerSweep = p < 0.5 ? 1 : 0;
+  // The inner arc runs top->bottom and the outer runs bottom->top, so equal
+  // sweep-flag VALUES put their bulges on OPPOSITE screen sides (spanning
+  // toward a full circle), and opposite flag VALUES put them on the SAME
+  // side (a lens shrinking to nothing at new/full-cycle boundaries). Crescent
+  // regions ([0,0.25) waxing, [0.75,1) waning) need the same-side lens;
+  // gibbous regions ([0.25,0.75)) need the opposite-side full-circle span.
+  const isGibbous = p >= 0.25 && p < 0.75;
+  const innerSweep = isGibbous ? outerSweep : 1 - outerSweep;
+  const d = `M ${cx} ${(cy - r).toFixed(2)}
+    A ${rx.toFixed(2)} ${r} 0 0 ${innerSweep} ${cx} ${(cy + r).toFixed(2)}
+    A ${r} ${r} 0 0 ${outerSweep} ${cx} ${(cy - r).toFixed(2)} Z`;
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="wc-moon-icon">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#232838" stroke="#5a6478" stroke-width="0.75"/>
+    <path d="${d}" fill="#e8ecf5"/>
+  </svg>`;
+}
+
 function uvDescriptor(index) {
   if (index == null) return { label: "--", color: "#8aa" };
   if (index < 3) return { label: "low", color: "#8bd346" };
@@ -152,7 +199,15 @@ function sunArcSvg({ sunrise, sunset, now = new Date(), width = 260, height = 84
   </svg>`;
 }
 
-const __exports = { iconSvg, windArrowSvg, windLegendHtml, uvDescriptor, sunArcSvg };
+const __exports = {
+  iconSvg,
+  windArrowSvg,
+  windLegendHtml,
+  uvDescriptor,
+  sunArcSvg,
+  moonPhaseLabel,
+  moonPhaseSvg,
+};
 if (typeof module === "object" && module.exports) {
   module.exports = __exports;
 } else {
