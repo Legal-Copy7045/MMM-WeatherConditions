@@ -39,4 +39,25 @@ if (fs.existsSync(chartSrc)) {
   console.warn("chart.js not installed — run `npm install` before `npm run sync` to vendor it");
 }
 
+// Vendor the Weather Icons webfont (erikflowers/weather-icons, OFL-1.1 for
+// the font + MIT for the surrounding CSS — see README's Icon credits).
+// Needed in two places: vendor/ for the MM module (relative url() in
+// MMM-WeatherConditions.css resolves against the module's own path), and
+// the HA integration's www/ dir for the Lovelace card (its embedded
+// <style> is injected into the HA frontend's document, where a relative
+// url() would resolve against the *dashboard's* URL instead — build-card.js
+// rewrites that one url() to the absolute /{DOMAIN}_static/ path this
+// serves at instead).
+const fontSrc = path.join(ROOT, "node_modules", "weather-icons", "font", "weathericons-regular-webfont.woff");
+const wwwDir = path.join(ROOT, "custom_components", "weather_conditions", "www");
+if (fs.existsSync(fontSrc)) {
+  fs.mkdirSync(vendorDir, { recursive: true });
+  fs.mkdirSync(wwwDir, { recursive: true });
+  fs.copyFileSync(fontSrc, path.join(vendorDir, "weathericons-regular-webfont.woff"));
+  fs.copyFileSync(fontSrc, path.join(wwwDir, "weathericons-regular-webfont.woff"));
+  console.log("vendored weathericons-regular-webfont.woff");
+} else {
+  console.warn("weather-icons not installed — run `npm install` before `npm run sync` to vendor its font");
+}
+
 console.log("sync-core: done");

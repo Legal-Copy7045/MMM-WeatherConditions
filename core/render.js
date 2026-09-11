@@ -54,7 +54,7 @@ function defaultFmt(iso, opts, locale) {
 function currentCardHtml(state, config, fmt = defaultFmt) {
   const cur = state.current || {};
   const today = (state.daily || [])[0] || {};
-  const icon = visuals.iconSvg(cur.icon, { size: 64 });
+  const icon = visuals.conditionIconHtml(cur.icon, { size: 44 });
   const uv = visuals.uvDescriptor(cur.uvIndex);
   const uc = (id, kind, val) => cyclingValue(config.units, id, kind, val);
 
@@ -81,7 +81,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         </div>
         <div class="wc-stat">
           <span class="wc-stat-label">Wind</span>
-          <span class="wc-stat-value">${visuals.windArrowSvg(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
+          <span class="wc-stat-value">${visuals.windArrowHtml(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
           ${cur.windGustKmh != null ? `<span class="wc-stat-sub wc-dimmed">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
         </div>
         <div class="wc-stat">
@@ -90,7 +90,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         </div>
         ${
           today.moonPhase != null
-            ? `<div class="wc-stat"><span class="wc-stat-label">Moon</span><span class="wc-stat-value">${visuals.moonPhaseSvg(today.moonPhase, { size: 16 })} ${visuals.moonPhaseLabel(today.moonPhase)}</span></div>`
+            ? `<div class="wc-stat"><span class="wc-stat-label">Moon</span><span class="wc-stat-value">${visuals.moonPhaseHtml(today.moonPhase, { size: 16 })} ${visuals.moonPhaseLabel(today.moonPhase)}</span></div>`
             : ""
         }
         ${
@@ -99,7 +99,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
             : ""
         }
       </div>
-      <div class="wc-sunarc-wrap">${visuals.sunArcSvg({ sunrise: cur.sunrise, sunset: cur.sunset })}</div>
+      <div class="wc-sunarc-wrap">${visuals.sunArcHtml({ sunrise: cur.sunrise, sunset: cur.sunset })}</div>
       ${visuals.windLegendHtml()}
     </div>
   `;
@@ -111,8 +111,8 @@ function forecastHeadsHtml(rows, config, timeOpts, fmt) {
       const t = fmt(r.time || r.date, timeOpts, config.locale);
       return `<div class="wc-hcol">
         <div class="wc-hcol-time wc-dimmed">${t}</div>
-        <div class="wc-hcol-icon">${visuals.iconSvg(r.icon, { size: 28 })}</div>
-        <div class="wc-hcol-wind">${visuals.windArrowSvg(r.windDirDeg, r.windKmh, { size: 14 })} <span>${units.format("speed", r.windKmh, config.units.wind.list[0])}</span></div>
+        <div class="wc-hcol-icon">${visuals.conditionIconHtml(r.icon, { size: 20 })}</div>
+        <div class="wc-hcol-wind">${visuals.windArrowHtml(r.windDirDeg, r.windKmh, { size: 12 })} <span>${units.format("speed", r.windKmh, config.units.wind.list[0])}</span></div>
       </div>`;
     })
     .join("");

@@ -240,9 +240,10 @@ if (typeof module === "object" && module.exports) {
 (function () {
 (function () {
 /**
- * SVG rendering: condition icons, the sunrise/sunset arc, and wind
- * direction arrows. Pure string-builders (no DOM), shared by the MM
- * module and the Lovelace card.
+ * Icon-font rendering (erikflowers/weather-icons, vendored in vendor/ and
+ * custom_components/weather_conditions/www/ by scripts/sync-core.js), the
+ * sunrise/sunset arc, and wind direction arrows. Pure string-builders (no
+ * DOM), shared by the MM module and the Lovelace card.
  */
 
 const windscale =
@@ -254,86 +255,48 @@ function uid(prefix) {
   return `${prefix}${_uidSeq}`;
 }
 
-function sunGlyph(cx, cy, r, color = "#f4c542") {
-  const rays = [];
-  for (let i = 0; i < 8; i++) {
-    const a = (Math.PI / 4) * i;
-    const x1 = cx + Math.cos(a) * (r + 3);
-    const y1 = cy + Math.sin(a) * (r + 3);
-    const x2 = cx + Math.cos(a) * (r + 7);
-    const y2 = cy + Math.sin(a) * (r + 7);
-    rays.push(`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="${color}" stroke-width="2" stroke-linecap="round"/>`);
-  }
-  return `<g>${rays.join("")}<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/></g>`;
-}
+// condition key -> weather-icons class (day/night resolved by whichever key
+// the caller passes in, e.g. "clear-day" / "clear-night").
+const CONDITION_ICON_CLASS = {
+  "clear-day": "wi-day-sunny",
+  "clear-night": "wi-night-clear",
+  "partly-cloudy-day": "wi-day-cloudy",
+  "partly-cloudy-night": "wi-night-alt-cloudy",
+  cloudy: "wi-cloudy",
+  overcast: "wi-cloudy",
+  fog: "wi-fog",
+  "fog-day": "wi-day-fog",
+  "fog-night": "wi-night-fog",
+  drizzle: "wi-showers",
+  "drizzle-day": "wi-day-showers",
+  "drizzle-night": "wi-night-alt-showers",
+  rain: "wi-rain",
+  "rain-day": "wi-day-rain",
+  "rain-night": "wi-night-alt-rain",
+  "sleet-day": "wi-day-sleet",
+  "sleet-night": "wi-night-alt-sleet",
+  sleet: "wi-day-sleet",
+  "snow-day": "wi-day-snow",
+  "snow-night": "wi-night-alt-snow",
+  snow: "wi-day-snow",
+  "thunderstorm-day": "wi-day-thunderstorm",
+  "thunderstorm-night": "wi-night-alt-thunderstorm",
+  thunderstorm: "wi-day-thunderstorm",
+  cloud: "wi-cloud",
+};
 
-function moonGlyph(cx, cy, r, color = "#cfd8ea") {
-  return `<path d="M ${cx - r * 0.4} ${cy - r} A ${r} ${r} 0 1 0 ${cx - r * 0.4} ${cy + r} A ${r * 0.75} ${r * 0.75} 0 1 1 ${cx - r * 0.4} ${cy - r} Z" fill="${color}"/>`;
-}
-
-function cloudGlyph(cx, cy, scale = 1, color = "#aab4c8") {
-  return `<g transform="translate(${cx} ${cy}) scale(${scale})"><path d="M -18 6 a 9 9 0 0 1 3 -17.6 a 12 12 0 0 1 22.6 -4 a 10 10 0 0 1 1.4 21.6 Z" fill="${color}"/></g>`;
-}
-
-function rainGlyph(cx, cy, color = "#5aa7ff") {
-  const drops = [-10, 0, 10].map(
-    (dx) => `<line x1="${cx + dx}" y1="${cy}" x2="${cx + dx - 3}" y2="${cy + 9}" stroke="${color}" stroke-width="2.4" stroke-linecap="round"/>`
-  );
-  return `<g>${drops.join("")}</g>`;
-}
-
-function snowGlyph(cx, cy, color = "#d8e6ff") {
-  const flakes = [-10, 0, 10].map((dx) => `<circle cx="${cx + dx}" cy="${cy + 5}" r="1.8" fill="${color}"/>`);
-  return `<g>${flakes.join("")}</g>`;
-}
-
-function boltGlyph(cx, cy, color = "#f4c542") {
-  return `<path d="M ${cx - 2} ${cy - 2} L ${cx - 8} ${cy + 8} L ${cx - 1} ${cy + 8} L ${cx - 5} ${cy + 16} L ${cx + 9} ${cy + 3} L ${cx + 1} ${cy + 3} Z" fill="${color}"/>`;
-}
-
-function fogGlyph(cx, cy, color = "#b7c0d1") {
-  const lines = [-2, 4, 10].map(
-    (dy) => `<line x1="${cx - 14}" y1="${cy + dy}" x2="${cx + 14}" y2="${cy + dy}" stroke="${color}" stroke-width="2.2" stroke-linecap="round"/>`
-  );
-  return `<g>${lines.join("")}</g>`;
-}
-
-/** Build a self-contained condition icon as an inline SVG string. */
-function iconSvg(key, { size = 40 } = {}) {
-  const cx = size / 2;
-  const cy = size / 2;
-  const parts = [];
-  const hasCloud = /cloud|overcast|drizzle|rain|sleet|snow|thunderstorm|fog/.test(key);
-  const skyR = size * 0.18;
-  if (key === "clear-day") parts.push(sunGlyph(cx, cy, skyR));
-  else if (key === "clear-night") parts.push(moonGlyph(cx, cy, skyR));
-  else if (key === "partly-cloudy-day") {
-    parts.push(sunGlyph(cx - size * 0.14, cy - size * 0.12, skyR * 0.85));
-    parts.push(cloudGlyph(cx + size * 0.08, cy + size * 0.08, size / 42));
-  } else if (key === "partly-cloudy-night") {
-    parts.push(moonGlyph(cx - size * 0.14, cy - size * 0.12, skyR * 0.85));
-    parts.push(cloudGlyph(cx + size * 0.08, cy + size * 0.08, size / 42));
-  } else if (hasCloud) {
-    parts.push(cloudGlyph(cx, cy - size * 0.06, size / 38));
-  }
-  if (key === "fog") parts.push(fogGlyph(cx, cy + size * 0.2));
-  if (key === "drizzle" || key === "rain") parts.push(rainGlyph(cx, cy + size * 0.16));
-  if (key === "sleet") {
-    parts.push(rainGlyph(cx - 5, cy + size * 0.16));
-    parts.push(snowGlyph(cx + 5, cy + size * 0.2));
-  }
-  if (key === "snow") parts.push(snowGlyph(cx, cy + size * 0.2));
-  if (key === "thunderstorm") parts.push(boltGlyph(cx, cy + size * 0.12));
-  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="wc-icon wc-icon-${key}">${parts.join("")}</svg>`;
+/** Build a condition icon as a `<i class="wi ...">` glyph, sized in px. */
+function conditionIconHtml(key, { size = 40, color } = {}) {
+  const cls = CONDITION_ICON_CLASS[key] || "wi-cloud"; // weather-icons has no dedicated "unknown" glyph
+  const style = `font-size:${size}px;${color ? `color:${color};` : ""}`;
+  return `<i class="wi ${cls} wc-icon wc-icon-${key}" style="${style}"></i>`;
 }
 
 /** A wind-direction arrow, coloured by the shared wind-speed legend. */
-function windArrowSvg(dirDeg, kmh, { size = 20 } = {}) {
+function windArrowHtml(dirDeg, kmh, { size = 20 } = {}) {
   const color = windscale.colorForKmh(kmh);
   const rot = (dirDeg ?? 0) + 180; // meteorological "from" -> arrow points where it blows
-  return `<svg viewBox="0 0 24 24" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="wc-wind-arrow" style="transform: rotate(${rot}deg)">
-    <path d="M12 2 L18 14 L12 10.5 L6 14 Z" fill="${color}"/>
-  </svg>`;
+  return `<i class="wi wi-wind-default wc-wind-arrow" style="font-size:${size}px;color:${color};display:inline-block;transform:rotate(${rot}deg)"></i>`;
 }
 
 /** The horizontal wind-speed legend bar shown under the current-conditions card. */
@@ -368,31 +331,53 @@ function moonPhaseLabel(phase) {
   return hit ? hit.label : "--";
 }
 
-/** Lit-fraction silhouette via a terminator ellipse — standard moon-phase-icon technique. */
-function moonPhaseSvg(phase, { size = 24 } = {}) {
-  if (phase == null) return "";
+// weather-icons ships 28 discrete moon-phase glyphs (wi-moon-new through a
+// full waxing/waning cycle). Upstream's own class names have an inconsistent
+// spelling: "waxing-cresent" (missing a 'c') vs the correctly-spelled
+// "waning-crescent" -- preserved here exactly as-is since these are the
+// literal CSS class names shipped in weather-icons.css.
+const MOON_PHASE_CLASSES = [
+  "wi-moon-new",
+  "wi-moon-waxing-cresent-1",
+  "wi-moon-waxing-cresent-2",
+  "wi-moon-waxing-cresent-3",
+  "wi-moon-waxing-cresent-4",
+  "wi-moon-waxing-cresent-5",
+  "wi-moon-waxing-cresent-6",
+  "wi-moon-first-quarter",
+  "wi-moon-waxing-gibbous-1",
+  "wi-moon-waxing-gibbous-2",
+  "wi-moon-waxing-gibbous-3",
+  "wi-moon-waxing-gibbous-4",
+  "wi-moon-waxing-gibbous-5",
+  "wi-moon-waxing-gibbous-6",
+  "wi-moon-full",
+  "wi-moon-waning-gibbous-1",
+  "wi-moon-waning-gibbous-2",
+  "wi-moon-waning-gibbous-3",
+  "wi-moon-waning-gibbous-4",
+  "wi-moon-waning-gibbous-5",
+  "wi-moon-waning-gibbous-6",
+  "wi-moon-3rd-quarter",
+  "wi-moon-waning-crescent-1",
+  "wi-moon-waning-crescent-2",
+  "wi-moon-waning-crescent-3",
+  "wi-moon-waning-crescent-4",
+  "wi-moon-waning-crescent-5",
+  "wi-moon-waning-crescent-6",
+];
+
+/** Map OWM's 0..1 moon_phase fraction onto one of the 28 discrete phase glyphs. */
+function moonPhaseClass(phase) {
+  if (phase == null) return "wi-na";
   const p = ((phase % 1) + 1) % 1;
-  const r = size / 2 - 1;
-  const cx = size / 2;
-  const cy = size / 2;
-  const theta = p * 2 * Math.PI;
-  const rx = Math.abs(r * Math.cos(theta));
-  const outerSweep = p < 0.5 ? 1 : 0;
-  // The inner arc runs top->bottom and the outer runs bottom->top, so equal
-  // sweep-flag VALUES put their bulges on OPPOSITE screen sides (spanning
-  // toward a full circle), and opposite flag VALUES put them on the SAME
-  // side (a lens shrinking to nothing at new/full-cycle boundaries). Crescent
-  // regions ([0,0.25) waxing, [0.75,1) waning) need the same-side lens;
-  // gibbous regions ([0.25,0.75)) need the opposite-side full-circle span.
-  const isGibbous = p >= 0.25 && p < 0.75;
-  const innerSweep = isGibbous ? outerSweep : 1 - outerSweep;
-  const d = `M ${cx} ${(cy - r).toFixed(2)}
-    A ${rx.toFixed(2)} ${r} 0 0 ${innerSweep} ${cx} ${(cy + r).toFixed(2)}
-    A ${r} ${r} 0 0 ${outerSweep} ${cx} ${(cy - r).toFixed(2)} Z`;
-  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="wc-moon-icon">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#232838" stroke="#5a6478" stroke-width="0.75"/>
-    <path d="${d}" fill="#e8ecf5"/>
-  </svg>`;
+  const idx = Math.round(p * MOON_PHASE_CLASSES.length) % MOON_PHASE_CLASSES.length;
+  return MOON_PHASE_CLASSES[idx];
+}
+
+function moonPhaseHtml(phase, { size = 24 } = {}) {
+  if (phase == null) return "";
+  return `<i class="wi ${moonPhaseClass(phase)} wc-moon-icon" style="font-size:${size}px"></i>`;
 }
 
 function uvDescriptor(index) {
@@ -406,9 +391,13 @@ function uvDescriptor(index) {
 
 /**
  * Sunrise/sunset arc with a marker for the sun's current position along it.
- * Returns an SVG string; hidden gracefully if sunrise/sunset are unknown.
+ * The curve itself stays an inline SVG (a smooth bezier is awkward to fake
+ * with icon glyphs), but the sunrise/sunset endpoint markers are now the
+ * `wi-sunrise`/`wi-sunset` icon-font glyphs, absolutely positioned over the
+ * SVG rather than drawn as SVG shapes. Returns an HTML string; empty if
+ * sunrise/sunset are unknown.
  */
-function sunArcSvg({ sunrise, sunset, now = new Date(), width = 260, height = 84, timeFmt = (d) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) }) {
+function sunArcHtml({ sunrise, sunset, now = new Date(), width = 260, height = 84, timeFmt = (d) => d.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) }) {
   if (!sunrise || !sunset) return "";
   const t0 = new Date(sunrise).getTime();
   const t1 = new Date(sunset).getTime();
@@ -430,25 +419,29 @@ function sunArcSvg({ sunrise, sunset, now = new Date(), width = 260, height = 84
   const marker = bezierPoint(frac);
   const isUp = t >= t0 && t <= t1;
   const id = uid("sunarc");
-  return `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" class="wc-sunarc">
+  const iconSize = 16;
+  const svg = `<svg viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" xmlns="http://www.w3.org/2000/svg" class="wc-sunarc">
     <line x1="${x0}" y1="${yBase}" x2="${x1}" y2="${yBase}" stroke="#3a4258" stroke-width="1" stroke-dasharray="2 3"/>
     <path d="M ${x0} ${yBase} Q ${midX} ${yTop} ${x1} ${yBase}" fill="none" stroke="#f4c542" stroke-width="2"/>
     ${isUp ? `<circle cx="${marker.x.toFixed(1)}" cy="${marker.y.toFixed(1)}" r="5" fill="#f4c542" id="${id}"/>` : ""}
-    ${sunGlyph(x0, yBase, 6)}
-    ${moonGlyph(x1, yBase, 6)}
     <text x="${x0}" y="${height - 4}" font-size="11" fill="#c7cede" text-anchor="start">${timeFmt(new Date(sunrise))}</text>
     <text x="${x1}" y="${height - 4}" font-size="11" fill="#c7cede" text-anchor="end">${timeFmt(new Date(sunset))}</text>
   </svg>`;
+  return `<div class="wc-sunarc-inner" style="position:relative;width:100%;max-width:${width}px;margin:0 auto">
+    ${svg}
+    <i class="wi wi-sunrise" style="position:absolute;left:${x0 - iconSize / 2}px;top:${yBase - iconSize - 2}px;font-size:${iconSize}px;color:#f4c542"></i>
+    <i class="wi wi-sunset" style="position:absolute;left:${x1 - iconSize / 2}px;top:${yBase - iconSize - 2}px;font-size:${iconSize}px;color:#8b93a8"></i>
+  </div>`;
 }
 
 const __exports = {
-  iconSvg,
-  windArrowSvg,
+  conditionIconHtml,
+  windArrowHtml,
   windLegendHtml,
   uvDescriptor,
-  sunArcSvg,
+  sunArcHtml,
   moonPhaseLabel,
-  moonPhaseSvg,
+  moonPhaseHtml,
 };
 if (typeof module === "object" && module.exports) {
   module.exports = __exports;
@@ -597,7 +590,7 @@ function defaultFmt(iso, opts, locale) {
 function currentCardHtml(state, config, fmt = defaultFmt) {
   const cur = state.current || {};
   const today = (state.daily || [])[0] || {};
-  const icon = visuals.iconSvg(cur.icon, { size: 64 });
+  const icon = visuals.conditionIconHtml(cur.icon, { size: 44 });
   const uv = visuals.uvDescriptor(cur.uvIndex);
   const uc = (id, kind, val) => cyclingValue(config.units, id, kind, val);
 
@@ -624,7 +617,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         </div>
         <div class="wc-stat">
           <span class="wc-stat-label">Wind</span>
-          <span class="wc-stat-value">${visuals.windArrowSvg(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
+          <span class="wc-stat-value">${visuals.windArrowHtml(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
           ${cur.windGustKmh != null ? `<span class="wc-stat-sub wc-dimmed">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
         </div>
         <div class="wc-stat">
@@ -633,7 +626,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         </div>
         ${
           today.moonPhase != null
-            ? `<div class="wc-stat"><span class="wc-stat-label">Moon</span><span class="wc-stat-value">${visuals.moonPhaseSvg(today.moonPhase, { size: 16 })} ${visuals.moonPhaseLabel(today.moonPhase)}</span></div>`
+            ? `<div class="wc-stat"><span class="wc-stat-label">Moon</span><span class="wc-stat-value">${visuals.moonPhaseHtml(today.moonPhase, { size: 16 })} ${visuals.moonPhaseLabel(today.moonPhase)}</span></div>`
             : ""
         }
         ${
@@ -642,7 +635,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
             : ""
         }
       </div>
-      <div class="wc-sunarc-wrap">${visuals.sunArcSvg({ sunrise: cur.sunrise, sunset: cur.sunset })}</div>
+      <div class="wc-sunarc-wrap">${visuals.sunArcHtml({ sunrise: cur.sunrise, sunset: cur.sunset })}</div>
       ${visuals.windLegendHtml()}
     </div>
   `;
@@ -654,8 +647,8 @@ function forecastHeadsHtml(rows, config, timeOpts, fmt) {
       const t = fmt(r.time || r.date, timeOpts, config.locale);
       return `<div class="wc-hcol">
         <div class="wc-hcol-time wc-dimmed">${t}</div>
-        <div class="wc-hcol-icon">${visuals.iconSvg(r.icon, { size: 28 })}</div>
-        <div class="wc-hcol-wind">${visuals.windArrowSvg(r.windDirDeg, r.windKmh, { size: 14 })} <span>${units.format("speed", r.windKmh, config.units.wind.list[0])}</span></div>
+        <div class="wc-hcol-icon">${visuals.conditionIconHtml(r.icon, { size: 20 })}</div>
+        <div class="wc-hcol-wind">${visuals.windArrowHtml(r.windDirDeg, r.windKmh, { size: 12 })} <span>${units.format("speed", r.windKmh, config.units.wind.list[0])}</span></div>
       </div>`;
     })
     .join("");
@@ -781,19 +774,26 @@ const deps = (() => {
 })();
 const { units, windscale } = deps;
 
-function baseChartOptions() {
+/** `includePrecip: false` drops the right-hand precip axis entirely (e.g. the
+ * soil chart, which has no precipitation series) while keeping the same x/temp
+ * axis look as the daily/hourly charts, so the two charts read as the same
+ * graph with a different line rather than a differently-styled one. */
+function baseChartOptions({ includePrecip = true } = {}) {
   const tickFont = { size: 9 };
+  const scales = {
+    x: { ticks: { color: "#c7cede", font: tickFont }, grid: { color: "#2a3247" } },
+    temp: { position: "left", ticks: { color: "#f4c542", font: tickFont }, grid: { color: "#2a3247" } },
+  };
+  if (includePrecip) {
+    scales.precip = { position: "right", beginAtZero: true, suggestedMax: 5, ticks: { color: "#5aa7ff", font: tickFont }, grid: { display: false } };
+  }
   return {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
     layout: { padding: 0 },
     plugins: { legend: { display: false } },
-    scales: {
-      x: { ticks: { color: "#c7cede", font: tickFont }, grid: { color: "#2a3247" } },
-      temp: { position: "left", ticks: { color: "#f4c542", font: tickFont }, grid: { color: "#2a3247" } },
-      precip: { position: "right", beginAtZero: true, suggestedMax: 5, ticks: { color: "#5aa7ff", font: tickFont }, grid: { display: false } },
-    },
+    scales,
   };
 }
 
@@ -840,7 +840,7 @@ function precipLabelsPlugin(precipUnit, decimals) {
  * the given colour, matching the reference module's labelled temperature
  * lines (high in orange above, low in green below, near the precip bars).
  */
-function pointLabelsPlugin(datasetLabel, { color, unit, decimals, dy = -6 }) {
+function pointLabelsPlugin(datasetLabel, { color, unit, decimals, dy = -6, onlyIndex = null }) {
   return {
     id: `wcPointLabels_${datasetLabel}`,
     afterDatasetsDraw(chart) {
@@ -855,6 +855,7 @@ function pointLabelsPlugin(datasetLabel, { color, unit, decimals, dy = -6 }) {
       ctx.fillStyle = color;
       ctx.textAlign = "center";
       meta.data.forEach((point, i) => {
+        if (onlyIndex != null && i !== onlyIndex) return;
         const v = values[i];
         if (v == null) return;
         ctx.fillText(`${v.toFixed(decimals)}${unit}`, point.x, point.y + dy);
@@ -929,26 +930,43 @@ function dailyChartConfig(state, config, fmt) {
   return lineBarChartConfig(rows, config, "date", true, fmt);
 }
 
+/**
+ * Same axis setup and tick styling as the daily temperature chart
+ * (lineBarChartConfig's "Temperature" dataset) — built from soil data
+ * instead of meteo data, so switching between the two charts (see
+ * MMM-WeatherConditions.js's daily/soil toggle) reads as the same graph
+ * with a different line, rather than a visually distinct one. Unlike the
+ * daily chart's ~5 labelled points, this is an hourly series over several
+ * days (100+ points), so it skips per-point markers/labels — those would
+ * just overlap into noise at this density — and only labels the current
+ * hour's reading, the one point a viewer actually wants at a glance.
+ */
 function soilChartConfig(state, config, fmt = defaultFmt) {
   const hours = (config.soilForecastDays || 5) * 24;
   const rows = (state.soilForecast || []).slice(0, hours);
   const tempUnit = config.units.temperature.list[0];
+  const tempLabel = units.labelFor("temperature", tempUnit);
+  const tempDecimals = units.decimalsFor("temperature", tempUnit);
   return {
     type: "line",
     data: {
       labels: rows.map((r) => fmt(r.time, { weekday: "short", hour: "numeric" }, config.locale)),
       datasets: [
         {
+          type: "line",
           label: "Soil temp",
+          yAxisID: "temp",
           data: rows.map((r) => units.fromBase("temperature", r.tempC, tempUnit)),
           borderColor: "#8bd346",
           backgroundColor: "transparent",
-          tension: 0.3,
           pointRadius: 0,
+          pointHoverRadius: 3,
+          tension: 0.3,
         },
       ],
     },
-    options: baseChartOptions(),
+    options: baseChartOptions({ includePrecip: false }),
+    plugins: [pointLabelsPlugin("Soil temp", { color: "#8bd346", unit: tempLabel, decimals: tempDecimals, dy: -8, onlyIndex: 0 })],
   };
 }
 
@@ -1436,10 +1454,92 @@ if (typeof module === "object" && module.exports) {
  */
 // Replaced with the contents of MMM-WeatherConditions.css by scripts/build-card.js
 // (shadow DOM doesn't inherit page styles, so the card carries its own copy).
-const CARD_CSS = `.wc-weather-conditions {
+const CARD_CSS = `/* Icon glyphs from erikflowers/weather-icons (SIL OFL-1.1 font + MIT CSS),
+   vendored by scripts/sync-core.js. Relative url() here resolves against
+   this module's own folder -- the Lovelace card's embedded copy of this
+   file gets this url() rewritten to an absolute /weather_conditions_static/
+   path by scripts/build-card.js, since a shadow-DOM <style> tag resolves
+   relative url()s against the host dashboard's URL, not the card's. */
+@font-face {
+  font-family: "weathericons";
+  src: url("/weather_conditions_static/weathericons-regular-webfont.woff") format("woff");
+  font-weight: normal;
+  font-style: normal;
+}
+
+.wi {
+  display: inline-block;
+  font-family: "weathericons";
+  font-style: normal;
+  font-weight: normal;
+  line-height: 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Codepoints extracted from node_modules/weather-icons/css/weather-icons.css
+   -- only the glyphs this module actually uses. */
+.wi-day-sunny:before { content: "\f00d"; }
+.wi-night-clear:before { content: "\f02e"; }
+.wi-day-cloudy:before { content: "\f002"; }
+.wi-night-alt-cloudy:before { content: "\f086"; }
+.wi-cloud:before { content: "\f041"; }
+.wi-cloudy:before { content: "\f013"; }
+.wi-fog:before { content: "\f014"; }
+.wi-day-fog:before { content: "\f003"; }
+.wi-night-fog:before { content: "\f04a"; }
+.wi-showers:before { content: "\f01a"; }
+.wi-day-showers:before { content: "\f009"; }
+.wi-night-alt-showers:before { content: "\f029"; }
+.wi-rain:before { content: "\f019"; }
+.wi-day-rain:before { content: "\f008"; }
+.wi-night-alt-rain:before { content: "\f028"; }
+.wi-day-sleet:before { content: "\f0b2"; }
+.wi-night-alt-sleet:before { content: "\f0b4"; }
+.wi-day-snow:before { content: "\f00a"; }
+.wi-night-alt-snow:before { content: "\f02a"; }
+.wi-day-thunderstorm:before { content: "\f010"; }
+.wi-night-alt-thunderstorm:before { content: "\f02d"; }
+.wi-sunrise:before { content: "\f051"; }
+.wi-sunset:before { content: "\f052"; }
+.wi-wind-default:before { content: "\f0b1"; }
+.wi-moon-new:before { content: "\f095"; }
+.wi-moon-waxing-cresent-1:before { content: "\f096"; }
+.wi-moon-waxing-cresent-2:before { content: "\f097"; }
+.wi-moon-waxing-cresent-3:before { content: "\f098"; }
+.wi-moon-waxing-cresent-4:before { content: "\f099"; }
+.wi-moon-waxing-cresent-5:before { content: "\f09a"; }
+.wi-moon-waxing-cresent-6:before { content: "\f09b"; }
+.wi-moon-first-quarter:before { content: "\f09c"; }
+.wi-moon-waxing-gibbous-1:before { content: "\f09d"; }
+.wi-moon-waxing-gibbous-2:before { content: "\f09e"; }
+.wi-moon-waxing-gibbous-3:before { content: "\f09f"; }
+.wi-moon-waxing-gibbous-4:before { content: "\f0a0"; }
+.wi-moon-waxing-gibbous-5:before { content: "\f0a1"; }
+.wi-moon-waxing-gibbous-6:before { content: "\f0a2"; }
+.wi-moon-full:before { content: "\f0a3"; }
+.wi-moon-waning-gibbous-1:before { content: "\f0a4"; }
+.wi-moon-waning-gibbous-2:before { content: "\f0a5"; }
+.wi-moon-waning-gibbous-3:before { content: "\f0a6"; }
+.wi-moon-waning-gibbous-4:before { content: "\f0a7"; }
+.wi-moon-waning-gibbous-5:before { content: "\f0a8"; }
+.wi-moon-waning-gibbous-6:before { content: "\f0a9"; }
+.wi-moon-3rd-quarter:before { content: "\f0aa"; }
+.wi-moon-waning-crescent-1:before { content: "\f0ab"; }
+.wi-moon-waning-crescent-2:before { content: "\f0ac"; }
+.wi-moon-waning-crescent-3:before { content: "\f0ad"; }
+.wi-moon-waning-crescent-4:before { content: "\f0ae"; }
+.wi-moon-waning-crescent-5:before { content: "\f0af"; }
+.wi-moon-waning-crescent-6:before { content: "\f0b0"; }
+
+.wc-weather-conditions {
   color: #eef1f8;
   font-family: inherit;
-  width: 320px; /* matches the sports-scoreboard module's rendered width */
+  /* MMM-MyScoreboard shrink-wraps to its content instead of holding a fixed
+     width -- it measured 325px with no games showing and 375px once a live
+     game row rendered ("CHC PIT @ 14:20"). Matching its populated width
+     since that's its normal state most of the day. */
+  width: 375px;
   /* Absolute, not relative: MagicMirror's own page font-size (~20px, sized
      for room-distance reading) is much larger than a typical browser
      default, and every nested rule below is em-based off this value — an
@@ -1488,10 +1588,8 @@ const CARD_CSS = `.wc-weather-conditions {
   gap: 8px;
 }
 
-.wc-current-icon svg {
+.wc-current-icon .wi {
   display: block;
-  width: 44px;
-  height: 44px;
 }
 
 .wc-current-temp {
@@ -1553,7 +1651,7 @@ const CARD_CSS = `.wc-weather-conditions {
   gap: 3px;
 }
 
-.wc-stat-value svg {
+.wc-stat-value .wi {
   flex: none;
 }
 
@@ -1610,10 +1708,8 @@ const CARD_CSS = `.wc-weather-conditions {
   font-size: 0.85em;
 }
 
-.wc-hcol-icon svg {
+.wc-hcol-icon .wi {
   display: block;
-  width: 20px;
-  height: 20px;
 }
 
 .wc-hcol-wind {
@@ -1624,10 +1720,6 @@ const CARD_CSS = `.wc-weather-conditions {
   font-size: 0.8em;
 }
 
-.wc-hcol-wind svg {
-  width: 11px;
-  height: 11px;
-}
 
 .wc-chart-wrap {
   position: relative;
