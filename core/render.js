@@ -51,13 +51,15 @@ function defaultFmt(iso, opts, locale) {
   }
 }
 
-// Every stat is kept to a single line (a fainter inline note tacked onto the
-// value, e.g. "62% · dew 12°", rather than a separate sub-line) so a stat
-// with extra detail (wind's gusts, humidity's dew point) doesn't force a
-// taller grid row than its neighbour and leave a lopsided gap under the
-// shorter cell beside it — a real layout bug in the old two-line version.
-function statHtml(label, valueHtml, noteHtml) {
-  return `<div class="wc-stat">
+// Each stat is its own self-contained row (label left, value right on the
+// SAME line) rather than a cell in a 2-column grid. A grid sizes every cell
+// in a row to its tallest member, so a stat with extra detail (wind's gusts,
+// humidity's dew point) stretched the whole row and left a dead gap under
+// its shorter row-mate -- a real bug in the old layout. Independent rows
+// can't leak height into each other, so this holds regardless of how long
+// any one value gets.
+function statRowHtml(label, valueHtml, noteHtml) {
+  return `<div class="wc-stat-row">
     <span class="wc-stat-label">${label}</span>
     <span class="wc-stat-value">${valueHtml}${noteHtml ? `<span class="wc-stat-note wc-dimmed"> · ${noteHtml}</span>` : ""}</span>
   </div>`;
@@ -66,43 +68,47 @@ function statHtml(label, valueHtml, noteHtml) {
 function currentCardHtml(state, config, fmt = defaultFmt) {
   const cur = state.current || {};
   const today = (state.daily || [])[0] || {};
-  const icon = visuals.conditionIconHtml(cur.icon, { size: 36 });
+  const icon = visuals.conditionIconHtml(cur.icon, { size: 34 });
   const uv = visuals.uvDescriptor(cur.uvIndex);
   const uc = (id, kind, val) => cyclingValue(config.units, id, kind, val);
 
   const stats = [
-    statHtml(
+    statRowHtml(
       "Humidity",
       cur.humidityPct != null ? Math.round(cur.humidityPct) + "%" : "--",
       cur.dewPointC != null ? `dew ${uc("wc-dewpoint", "temperature", cur.dewPointC)}` : ""
     ),
-    statHtml("Pressure", uc("wc-pressure", "pressure", cur.pressureHpa)),
-    statHtml(
+    statRowHtml("Pressure", uc("wc-pressure", "pressure", cur.pressureHpa)),
+    statRowHtml(
       "Wind",
       `${visuals.windArrowHtml(cur.windDirDeg, cur.windKmh, { size: 13 })} ${uc("wc-wind", "wind", cur.windKmh)}`,
       cur.windGustKmh != null ? `gusts ${uc("wc-gust", "wind", cur.windGustKmh)}` : ""
     ),
-    statHtml("UV Index", `<span style="color:${uv.color}">${cur.uvIndex != null ? Math.round(cur.uvIndex) : "--"} ${uv.label}</span>`),
+    statRowHtml("UV Index", `<span style="color:${uv.color}">${cur.uvIndex != null ? Math.round(cur.uvIndex) : "--"} ${uv.label}</span>`),
   ];
   if (today.moonPhase != null) {
-    stats.push(statHtml("Moon", `${visuals.moonPhaseHtml(today.moonPhase, { size: 13 })} ${visuals.moonPhaseLabel(today.moonPhase)}`));
+    stats.push(statRowHtml("Moon", `${visuals.moonPhaseHtml(today.moonPhase, { size: 13 })} ${visuals.moonPhaseLabel(today.moonPhase)}`));
   }
   if (cur.soilTempC != null) {
-    stats.push(statHtml("Soil temp", uc("wc-soiltemp", "temperature", cur.soilTempC)));
+    stats.push(statRowHtml("Soil temp", uc("wc-soiltemp", "temperature", cur.soilTempC)));
   }
 
+  // Condition + feels-like sit on their own full-width line below the icon/
+  // temp row rather than beside it -- beside it, their position depended on
+  // how much space the icon+temp happened to leave over, which read as
+  // randomly placed rather than deliberately laid out. A dedicated line
+  // always starts at the same left edge, every time.
   return `
     <div class="wc-card wc-current">
       <div class="wc-current-main">
         <div class="wc-current-icon">${icon}</div>
         <div class="wc-current-temp">${uc("wc-temp-now", "temperature", cur.tempC)}</div>
-        <div class="wc-current-cond">
-          <div class="wc-cond-text">${escapeHtml(cur.condition || "")}</div>
-          <div class="wc-feelslike wc-dimmed">Feels like ${uc("wc-temp-feels", "temperature", cur.feelsLikeC)}</div>
-        </div>
+      </div>
+      <div class="wc-cond-line">
+        <span class="wc-cond-text">${escapeHtml(cur.condition || "")}</span><span class="wc-feelslike wc-dimmed"> · feels like ${uc("wc-temp-feels", "temperature", cur.feelsLikeC)}</span>
       </div>
       ${today.summary ? `<div class="wc-summary wc-dimmed">${escapeHtml(today.summary)}</div>` : ""}
-      <div class="wc-current-stats">${stats.join("")}</div>
+      <div class="wc-stat-list">${stats.join("")}</div>
       <div class="wc-sunarc-wrap">${visuals.sunArcHtml({ sunrise: cur.sunrise, sunset: cur.sunset })}</div>
       ${visuals.windLegendHtml()}
     </div>
