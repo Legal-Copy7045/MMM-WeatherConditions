@@ -64,3 +64,43 @@ test("dailyCardHtml has a stable id for the title so it can be swapped between t
   const html = render.dailyCardHtml(dailyRows, baseCfg);
   assert.match(html, /id="wc-daily-title"[^>]*>Daily Forecast</);
 });
+
+const currentCfg = {
+  units: {
+    temperature: { list: ["C"] },
+    pressure: { list: ["hPa"] },
+    wind: { list: ["kmh"] },
+  },
+};
+
+// Regression: dew point and gust readings used to render on a second line
+// inside their stat cell, so a stat with that extra line was taller than
+// its row-mate and left a lopsided gap beside it (e.g. Pressure's cell sat
+// noticeably shorter than Humidity's, right next to it in the same grid
+// row). Folding the note onto the value's own line keeps every cell the
+// same height.
+test("currentCardHtml keeps each stat to a single line, with dew point/gusts as an inline note", () => {
+  const state = { current: { humidityPct: 62, dewPointC: 12, windKmh: 14, windGustKmh: 26, pressureHpa: 1014 } };
+  const html = render.currentCardHtml(state, currentCfg);
+  assert.doesNotMatch(html, /wc-stat-sub/);
+  assert.match(html, /62%<span class="wc-stat-note wc-dimmed"> · dew/);
+  assert.match(html, /· gusts/);
+});
+
+test("currentCardHtml omits the dew-point/gust note entirely when that reading is unavailable", () => {
+  const state = { current: { humidityPct: 62, windKmh: 14, pressureHpa: 1014 } };
+  const html = render.currentCardHtml(state, currentCfg);
+  assert.doesNotMatch(html, /wc-stat-note/);
+});
+
+test("currentCardHtml omits the Soil temp stat when soilTempC is unavailable", () => {
+  const state = { current: { humidityPct: 62, windKmh: 14, pressureHpa: 1014 } };
+  const html = render.currentCardHtml(state, currentCfg);
+  assert.doesNotMatch(html, /Soil temp/);
+});
+
+test("currentCardHtml includes the Soil temp stat when soilTempC is present", () => {
+  const state = { current: { humidityPct: 62, windKmh: 14, pressureHpa: 1014, soilTempC: 13 } };
+  const html = render.currentCardHtml(state, currentCfg);
+  assert.match(html, /Soil temp/);
+});

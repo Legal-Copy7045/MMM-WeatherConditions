@@ -587,12 +587,45 @@ function defaultFmt(iso, opts, locale) {
   }
 }
 
+// Every stat is kept to a single line (a fainter inline note tacked onto the
+// value, e.g. "62% · dew 12°", rather than a separate sub-line) so a stat
+// with extra detail (wind's gusts, humidity's dew point) doesn't force a
+// taller grid row than its neighbour and leave a lopsided gap under the
+// shorter cell beside it — a real layout bug in the old two-line version.
+function statHtml(label, valueHtml, noteHtml) {
+  return `<div class="wc-stat">
+    <span class="wc-stat-label">${label}</span>
+    <span class="wc-stat-value">${valueHtml}${noteHtml ? `<span class="wc-stat-note wc-dimmed"> · ${noteHtml}</span>` : ""}</span>
+  </div>`;
+}
+
 function currentCardHtml(state, config, fmt = defaultFmt) {
   const cur = state.current || {};
   const today = (state.daily || [])[0] || {};
-  const icon = visuals.conditionIconHtml(cur.icon, { size: 44 });
+  const icon = visuals.conditionIconHtml(cur.icon, { size: 36 });
   const uv = visuals.uvDescriptor(cur.uvIndex);
   const uc = (id, kind, val) => cyclingValue(config.units, id, kind, val);
+
+  const stats = [
+    statHtml(
+      "Humidity",
+      cur.humidityPct != null ? Math.round(cur.humidityPct) + "%" : "--",
+      cur.dewPointC != null ? `dew ${uc("wc-dewpoint", "temperature", cur.dewPointC)}` : ""
+    ),
+    statHtml("Pressure", uc("wc-pressure", "pressure", cur.pressureHpa)),
+    statHtml(
+      "Wind",
+      `${visuals.windArrowHtml(cur.windDirDeg, cur.windKmh, { size: 13 })} ${uc("wc-wind", "wind", cur.windKmh)}`,
+      cur.windGustKmh != null ? `gusts ${uc("wc-gust", "wind", cur.windGustKmh)}` : ""
+    ),
+    statHtml("UV Index", `<span style="color:${uv.color}">${cur.uvIndex != null ? Math.round(cur.uvIndex) : "--"} ${uv.label}</span>`),
+  ];
+  if (today.moonPhase != null) {
+    stats.push(statHtml("Moon", `${visuals.moonPhaseHtml(today.moonPhase, { size: 13 })} ${visuals.moonPhaseLabel(today.moonPhase)}`));
+  }
+  if (cur.soilTempC != null) {
+    stats.push(statHtml("Soil temp", uc("wc-soiltemp", "temperature", cur.soilTempC)));
+  }
 
   return `
     <div class="wc-card wc-current">
@@ -605,36 +638,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         </div>
       </div>
       ${today.summary ? `<div class="wc-summary wc-dimmed">${escapeHtml(today.summary)}</div>` : ""}
-      <div class="wc-current-stats">
-        <div class="wc-stat">
-          <span class="wc-stat-label">Humidity</span>
-          <span class="wc-stat-value">${cur.humidityPct != null ? Math.round(cur.humidityPct) + "%" : "--"}</span>
-          <span class="wc-stat-sub wc-dimmed">Dew point ${uc("wc-dewpoint", "temperature", cur.dewPointC)}</span>
-        </div>
-        <div class="wc-stat">
-          <span class="wc-stat-label">Pressure</span>
-          <span class="wc-stat-value">${uc("wc-pressure", "pressure", cur.pressureHpa)}</span>
-        </div>
-        <div class="wc-stat">
-          <span class="wc-stat-label">Wind</span>
-          <span class="wc-stat-value">${visuals.windArrowHtml(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
-          ${cur.windGustKmh != null ? `<span class="wc-stat-sub wc-dimmed">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
-        </div>
-        <div class="wc-stat">
-          <span class="wc-stat-label">UV Index</span>
-          <span class="wc-stat-value" style="color:${uv.color}">${cur.uvIndex != null ? Math.round(cur.uvIndex) : "--"} (${uv.label})</span>
-        </div>
-        ${
-          today.moonPhase != null
-            ? `<div class="wc-stat"><span class="wc-stat-label">Moon</span><span class="wc-stat-value">${visuals.moonPhaseHtml(today.moonPhase, { size: 16 })} ${visuals.moonPhaseLabel(today.moonPhase)}</span></div>`
-            : ""
-        }
-        ${
-          cur.soilTempC != null
-            ? `<div class="wc-stat"><span class="wc-stat-label">Soil temp</span><span class="wc-stat-value">${uc("wc-soiltemp", "temperature", cur.soilTempC)}</span></div>`
-            : ""
-        }
-      </div>
+      <div class="wc-current-stats">${stats.join("")}</div>
       <div class="wc-sunarc-wrap">${visuals.sunArcHtml({ sunrise: cur.sunrise, sunset: cur.sunset })}</div>
       ${visuals.windLegendHtml()}
     </div>
@@ -1585,7 +1589,7 @@ const CARD_CSS = `/* Icon glyphs from erikflowers/weather-icons (SIL OFL-1.1 fon
 .wc-current-main {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
 
 .wc-current-icon .wi {
@@ -1593,14 +1597,15 @@ const CARD_CSS = `/* Icon glyphs from erikflowers/weather-icons (SIL OFL-1.1 fon
 }
 
 .wc-current-temp {
-  font-size: 1.9em;
+  font-size: 1.7em;
   font-weight: 300;
   line-height: 1;
 }
 
 .wc-current-cond {
-  margin-left: 4px;
+  margin-left: 2px;
   min-width: 0;
+  line-height: 1.3;
 }
 
 .wc-cond-text {
@@ -1613,21 +1618,24 @@ const CARD_CSS = `/* Icon glyphs from erikflowers/weather-icons (SIL OFL-1.1 fon
 
 .wc-feelslike {
   white-space: nowrap;
-  font-size: 0.85em;
+  font-size: 0.8em;
 }
 
 .wc-summary {
   margin-top: 4px;
   font-style: italic;
   line-height: 1.25;
-  font-size: 0.85em;
+  font-size: 0.82em;
 }
 
+/* Two columns, one line per stat -- every stat's note (dew point, gusts)
+   rides inline on the value line instead of a second line, so no cell can
+   be taller than its row-mate and leave a lopsided gap beside it. */
 .wc-current-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 4px 10px;
-  margin-top: 8px;
+  gap: 3px 10px;
+  margin-top: 6px;
 }
 
 .wc-stat {
@@ -1637,15 +1645,17 @@ const CARD_CSS = `/* Icon glyphs from erikflowers/weather-icons (SIL OFL-1.1 fon
 }
 
 .wc-stat-label {
-  font-size: 0.72em;
+  font-size: 0.68em;
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: #8b93a8;
 }
 
 .wc-stat-value {
-  font-size: 1em;
+  font-size: 0.95em;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   display: flex;
   align-items: center;
   gap: 3px;
@@ -1655,14 +1665,12 @@ const CARD_CSS = `/* Icon glyphs from erikflowers/weather-icons (SIL OFL-1.1 fon
   flex: none;
 }
 
-.wc-stat-sub {
-  margin-top: 1px;
-  white-space: nowrap;
-  font-size: 0.78em;
+.wc-stat-note {
+  font-size: 0.9em;
 }
 
 .wc-sunarc-wrap {
-  margin-top: 6px;
+  margin-top: 4px;
   text-align: center;
   line-height: 0;
 }
