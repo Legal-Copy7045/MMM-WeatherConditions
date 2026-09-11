@@ -1,3 +1,4 @@
+(function () {
 /**
  * Canonical weather state + normalizers from each supported source.
  * Every value is stored in a fixed base unit (°C, hPa, km/h, mm, km) —
@@ -296,3 +297,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.state = __exports;
 }
+})();

@@ -1,3 +1,4 @@
+(function () {
 /**
  * Wind-speed colour legend, shared by the current-conditions arrow, the
  * hourly/daily chart arrows, and the chart's wind-speed line — so one
@@ -74,3 +75,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.windscale = __exports;
 }
+})();

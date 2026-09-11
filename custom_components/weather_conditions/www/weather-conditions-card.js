@@ -17,6 +17,7 @@
 
 })();
 (function () {
+(function () {
 /**
  * Unit conversion + formatting. Pure functions, no DOM — shared by the MM
  * module, the Lovelace card, and (via the Python port) the HA integration.
@@ -152,8 +153,10 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.units = __exports;
 }
+})();
 
 })();
+(function () {
 (function () {
 /**
  * Wind-speed colour legend, shared by the current-conditions arrow, the
@@ -231,8 +234,10 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.windscale = __exports;
 }
+})();
 
 })();
+(function () {
 (function () {
 /**
  * SVG rendering: condition icons, the sunrise/sunset arc, and wind
@@ -394,8 +399,10 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.visuals = __exports;
 }
+})();
 
 })();
+(function () {
 (function () {
 /**
  * Unit-cycling values: a single value (temperature, pressure, wind, ...)
@@ -473,8 +480,10 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.unitcycle = __exports;
 }
+})();
 
 })();
+(function () {
 (function () {
 /**
  * HTML-string builders for each card, shared by the MM module and the
@@ -651,8 +660,10 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.render = __exports;
 }
+})();
 
 })();
+(function () {
 (function () {
 /**
  * Chart.js config builders for the hourly/daily/soil charts — shared by the
@@ -780,8 +791,10 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.charts = __exports;
 }
+})();
 
 })();
+(function () {
 (function () {
 /**
  * Canonical weather state + normalizers from each supported source.
@@ -1081,8 +1094,10 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.state = __exports;
 }
+})();
 
 })();
+(function () {
 (function () {
 /** Weather alerts: source-provided (e.g. OWM severe alerts) + derived thresholds. */
 
@@ -1125,8 +1140,10 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.conditions = __exports;
 }
+})();
 
 })();
+(function () {
 (function () {
 /**
  * Soil-temperature forecast from "day-bucket" sensors: a group of entities
@@ -1172,6 +1189,7 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.soilforecast = __exports;
 }
+})();
 
 })();
 (function () {

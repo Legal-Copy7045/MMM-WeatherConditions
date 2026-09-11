@@ -1,3 +1,4 @@
+(function () {
 /** Weather alerts: source-provided (e.g. OWM severe alerts) + derived thresholds. */
 
 const CHECK_DEFAULTS = {
@@ -39,3 +40,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.conditions = __exports;
 }
+})();

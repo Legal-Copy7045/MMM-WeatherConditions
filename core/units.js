@@ -1,3 +1,4 @@
+(function () {
 /**
  * Unit conversion + formatting. Pure functions, no DOM — shared by the MM
  * module, the Lovelace card, and (via the Python port) the HA integration.
@@ -133,3 +134,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.units = __exports;
 }
+})();

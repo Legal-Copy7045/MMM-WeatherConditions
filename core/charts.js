@@ -1,3 +1,4 @@
+(function () {
 /**
  * Chart.js config builders for the hourly/daily/soil charts — shared by the
  * MM module and the Lovelace card. Returns plain Chart.js config objects;
@@ -124,3 +125,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.charts = __exports;
 }
+})();
