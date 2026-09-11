@@ -348,6 +348,53 @@ function windLegendHtml() {
   </div>`;
 }
 
+const MOON_PHASE_LABELS = [
+  { max: 0.03, label: "new moon" },
+  { max: 0.22, label: "waxing crescent" },
+  { max: 0.28, label: "first quarter" },
+  { max: 0.47, label: "waxing gibbous" },
+  { max: 0.53, label: "full moon" },
+  { max: 0.72, label: "waning gibbous" },
+  { max: 0.78, label: "last quarter" },
+  { max: 0.97, label: "waning crescent" },
+  { max: 1.01, label: "new moon" },
+];
+
+/** phase: 0 = new moon, 0.5 = full moon, 1 = next new moon (OWM's moon_phase convention). */
+function moonPhaseLabel(phase) {
+  if (phase == null) return "--";
+  const p = ((phase % 1) + 1) % 1;
+  const hit = MOON_PHASE_LABELS.find((s) => p <= s.max);
+  return hit ? hit.label : "--";
+}
+
+/** Lit-fraction silhouette via a terminator ellipse — standard moon-phase-icon technique. */
+function moonPhaseSvg(phase, { size = 24 } = {}) {
+  if (phase == null) return "";
+  const p = ((phase % 1) + 1) % 1;
+  const r = size / 2 - 1;
+  const cx = size / 2;
+  const cy = size / 2;
+  const theta = p * 2 * Math.PI;
+  const rx = Math.abs(r * Math.cos(theta));
+  const outerSweep = p < 0.5 ? 1 : 0;
+  // The inner arc runs top->bottom and the outer runs bottom->top, so equal
+  // sweep-flag VALUES put their bulges on OPPOSITE screen sides (spanning
+  // toward a full circle), and opposite flag VALUES put them on the SAME
+  // side (a lens shrinking to nothing at new/full-cycle boundaries). Crescent
+  // regions ([0,0.25) waxing, [0.75,1) waning) need the same-side lens;
+  // gibbous regions ([0.25,0.75)) need the opposite-side full-circle span.
+  const isGibbous = p >= 0.25 && p < 0.75;
+  const innerSweep = isGibbous ? outerSweep : 1 - outerSweep;
+  const d = `M ${cx} ${(cy - r).toFixed(2)}
+    A ${rx.toFixed(2)} ${r} 0 0 ${innerSweep} ${cx} ${(cy + r).toFixed(2)}
+    A ${r} ${r} 0 0 ${outerSweep} ${cx} ${(cy - r).toFixed(2)} Z`;
+  return `<svg viewBox="0 0 ${size} ${size}" width="${size}" height="${size}" xmlns="http://www.w3.org/2000/svg" class="wc-moon-icon">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="#232838" stroke="#5a6478" stroke-width="0.75"/>
+    <path d="${d}" fill="#e8ecf5"/>
+  </svg>`;
+}
+
 function uvDescriptor(index) {
   if (index == null) return { label: "--", color: "#8aa" };
   if (index < 3) return { label: "low", color: "#8bd346" };
@@ -392,7 +439,15 @@ function sunArcSvg({ sunrise, sunset, now = new Date(), width = 260, height = 84
   </svg>`;
 }
 
-const __exports = { iconSvg, windArrowSvg, windLegendHtml, uvDescriptor, sunArcSvg };
+const __exports = {
+  iconSvg,
+  windArrowSvg,
+  windLegendHtml,
+  uvDescriptor,
+  sunArcSvg,
+  moonPhaseLabel,
+  moonPhaseSvg,
+};
 if (typeof module === "object" && module.exports) {
   module.exports = __exports;
 } else {
@@ -539,6 +594,7 @@ function defaultFmt(iso, opts, locale) {
 
 function currentCardHtml(state, config, fmt = defaultFmt) {
   const cur = state.current || {};
+  const today = (state.daily || [])[0] || {};
   const icon = visuals.iconSvg(cur.icon, { size: 64 });
   const uv = visuals.uvDescriptor(cur.uvIndex);
   const uc = (id, kind, val) => cyclingValue(config.units, id, kind, val);
@@ -553,6 +609,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
           <div class="wc-feelslike dimmed small">Feels like ${uc("wc-temp-feels", "temperature", cur.feelsLikeC)}</div>
         </div>
       </div>
+      ${today.summary ? `<div class="wc-summary dimmed small">${escapeHtml(today.summary)}</div>` : ""}
       <div class="wc-current-stats">
         <div class="wc-stat">
           <span class="wc-stat-label">Humidity</span>
@@ -572,6 +629,11 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
           <span class="wc-stat-label">UV Index</span>
           <span class="wc-stat-value" style="color:${uv.color}">${cur.uvIndex != null ? Math.round(cur.uvIndex) : "--"} (${uv.label})</span>
         </div>
+        ${
+          today.moonPhase != null
+            ? `<div class="wc-stat"><span class="wc-stat-label">Moon</span><span class="wc-stat-value">${visuals.moonPhaseSvg(today.moonPhase, { size: 16 })} ${visuals.moonPhaseLabel(today.moonPhase)}</span></div>`
+            : ""
+        }
         ${
           cur.soilTempC != null
             ? `<div class="wc-stat"><span class="wc-stat-label">Soil temp</span><span class="wc-stat-value">${uc("wc-soiltemp", "temperature", cur.soilTempC)}</span></div>`
@@ -631,12 +693,41 @@ function soilForecastCardHtml(state, config) {
   `;
 }
 
+/**
+ * A short glanceable line describing the next hour, derived from a
+ * `minutely` nowcast series: "Rain starting in 12 min", "Rain ending in
+ * 8 min", "Rain for the next hour", or "No rain expected in the next hour".
+ */
+function minutelyCalloutText(minutely, thresholdMmh = 0.1) {
+  const rows = minutely || [];
+  if (!rows.length) return "";
+  const isWet = (r) => (r.precipMmh || 0) >= thresholdMmh;
+  const rainingNow = isWet(rows[0]);
+  const changeIdx = rows.findIndex((r, i) => i > 0 && isWet(r) !== rainingNow);
+  if (rainingNow) {
+    return changeIdx === -1 ? "Rain for the next hour" : `Rain ending in ${changeIdx} min`;
+  }
+  return changeIdx === -1 ? "No rain expected in the next hour" : `Rain starting in ${changeIdx} min`;
+}
+
+function minutelyCardHtml(state, config) {
+  const callout = minutelyCalloutText(state.minutely);
+  return `
+    <div class="wc-card wc-minutely">
+      <div class="wc-card-title">Next Hour</div>
+      ${callout ? `<div class="wc-minutely-callout dimmed small">${escapeHtml(callout)}</div>` : ""}
+      <div class="wc-chart-wrap wc-chart-wrap-mini"><canvas id="wc-minutely-chart" height="28"></canvas></div>
+    </div>
+  `;
+}
+
 /** Full module markup for a given state + config (skips cards config disables). */
 function weatherHtml(state, config, fmt = defaultFmt) {
   const cards = config.cards || {};
   let html = `<div class="wc-weather-conditions">`;
   if (state.stale) html += `<div class="wc-stale-badge dimmed small">showing last known data</div>`;
   if (cards.current !== false) html += currentCardHtml(state, config, fmt);
+  if (cards.minutely !== false && state.minutely && state.minutely.length) html += minutelyCardHtml(state, config);
   if (cards.hourly !== false && state.hourly && state.hourly.length) html += hourlyCardHtml(state, config, fmt);
   if (cards.daily !== false && state.daily && state.daily.length) html += dailyCardHtml(state, config, fmt);
   if (cards.soilForecast && state.soilForecast && state.soilForecast.length) html += soilForecastCardHtml(state, config);
@@ -646,6 +737,8 @@ function weatherHtml(state, config, fmt = defaultFmt) {
 
 const __exports = {
   currentCardHtml,
+  minutelyCardHtml,
+  minutelyCalloutText,
   hourlyCardHtml,
   dailyCardHtml,
   soilForecastCardHtml,
@@ -704,6 +797,36 @@ function defaultFmt(iso, opts, locale) {
   }
 }
 
+/**
+ * Draws the precip amount ("0.5 mm") above each non-zero precipitation bar,
+ * matching the labelled bars in the reference module's hourly/daily charts.
+ * A plain Chart.js plugin (afterDatasetsDraw hook) rather than pulling in
+ * chartjs-plugin-datalabels, to keep the dependency footprint small.
+ */
+function precipLabelsPlugin(precipUnit, decimals) {
+  return {
+    id: "wcPrecipLabels",
+    afterDatasetsDraw(chart) {
+      const dsIndex = chart.data.datasets.findIndex((d) => d.label === "Precipitation");
+      if (dsIndex === -1) return;
+      const meta = chart.getDatasetMeta(dsIndex);
+      if (!meta || meta.hidden) return;
+      const values = chart.data.datasets[dsIndex].data;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "9px sans-serif";
+      ctx.fillStyle = "#c7cede";
+      ctx.textAlign = "center";
+      meta.data.forEach((bar, i) => {
+        const v = values[i];
+        if (!v) return;
+        ctx.fillText(`${v.toFixed(decimals)} ${precipUnit}`, bar.x, bar.y - 4);
+      });
+      ctx.restore();
+    },
+  };
+}
+
 /** rows: hourly or daily canonical rows. timeField: "time" | "date". isDaily adds a low-temp line. */
 function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) {
   const series = (isDaily ? config.dailySeries : config.hourlySeries) || {};
@@ -739,6 +862,7 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
       });
     }
   }
+  const plugins = [];
   if (series.precipitation !== false) {
     datasets.push({
       type: "bar",
@@ -747,9 +871,10 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
       data: rows.map((r) => units.fromBase("lengthSmall", r.precipMm, precipUnit)),
       backgroundColor: "#5aa7ffaa",
     });
+    plugins.push(precipLabelsPlugin(units.labelFor("lengthSmall", precipUnit), units.decimalsFor("lengthSmall", precipUnit)));
   }
 
-  return { data: { labels, datasets }, options: baseChartOptions() };
+  return { data: { labels, datasets }, options: baseChartOptions(), plugins };
 }
 
 function hourlyChartConfig(state, config, fmt) {
@@ -786,7 +911,47 @@ function soilChartConfig(state, config, fmt = defaultFmt) {
   };
 }
 
-const __exports = { baseChartOptions, lineBarChartConfig, hourlyChartConfig, dailyChartConfig, soilChartConfig };
+/** Dense, label-free area chart for the next-hour precipitation nowcast. */
+function minutelyChartConfig(state) {
+  const rows = state.minutely || [];
+  return {
+    type: "line",
+    data: {
+      labels: rows.map(() => ""),
+      datasets: [
+        {
+          data: rows.map((r) => r.precipMmh || 0),
+          borderColor: "#5aa7ff",
+          backgroundColor: "#5aa7ff44",
+          fill: true,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          tension: 0.25,
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: false,
+      layout: { padding: 0 },
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { display: false },
+        y: { display: false, beginAtZero: true, suggestedMax: 2 },
+      },
+    },
+  };
+}
+
+const __exports = {
+  baseChartOptions,
+  lineBarChartConfig,
+  hourlyChartConfig,
+  dailyChartConfig,
+  soilChartConfig,
+  minutelyChartConfig,
+};
 if (typeof module === "object" && module.exports) {
   module.exports = __exports;
 } else {
@@ -1292,6 +1457,12 @@ const CARD_CSS = `.wc-weather-conditions {
   white-space: nowrap;
 }
 
+.wc-summary {
+  margin-top: 4px;
+  font-style: italic;
+  line-height: 1.25;
+}
+
 .wc-current-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -1405,6 +1576,18 @@ const CARD_CSS = `.wc-weather-conditions {
   max-height: 64px;
 }
 
+.wc-chart-wrap-mini {
+  height: 28px;
+}
+
+.wc-chart-wrap-mini canvas {
+  max-height: 28px;
+}
+
+.wc-minutely-callout {
+  margin-bottom: 4px;
+}
+
 /* ---- unit cycling (see core/unitcycle.js) ---- */
 .wc-unit-cycle {
   position: relative;
@@ -1445,7 +1628,7 @@ class WeatherConditionsCard extends HTMLElement {
         precipitation: { list: ["mm"], cycleMs: 6000, fadeMs: 600 },
         visibility: { list: ["km"], cycleMs: 6000, fadeMs: 600 },
       },
-      cards: { current: true, hourly: true, daily: true, soilForecast: true },
+      cards: { current: true, minutely: true, hourly: true, daily: true, soilForecast: true },
       hourlySeries: { temperature: true, precipitation: true, wind: true },
       hourlyPoints: 5,
       hourlyStepHours: 4,
@@ -1497,6 +1680,13 @@ class WeatherConditionsCard extends HTMLElement {
 
   _renderCharts(state, cfg) {
     const root = this.shadowRoot;
+    if (cfg.cards.minutely !== false && state.minutely && state.minutely.length) {
+      const canvas = root.getElementById("wc-minutely-chart");
+      if (canvas) {
+        if (this._minutelyChart) this._minutelyChart.destroy();
+        this._minutelyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.minutelyChartConfig(state));
+      }
+    }
     if (cfg.cards.hourly && state.hourly.length) {
       const canvas = root.getElementById("wc-hourly-chart");
       if (canvas) {
@@ -1544,7 +1734,7 @@ class WeatherConditionsCard extends HTMLElement {
   }
 
   disconnectedCallback() {
-    ["_hourlyChart", "_dailyChart", "_soilChart"].forEach((ref) => {
+    ["_minutelyChart", "_hourlyChart", "_dailyChart", "_soilChart"].forEach((ref) => {
       if (this[ref]) this[ref].destroy();
     });
   }

@@ -26,7 +26,7 @@ class WeatherConditionsCard extends HTMLElement {
         precipitation: { list: ["mm"], cycleMs: 6000, fadeMs: 600 },
         visibility: { list: ["km"], cycleMs: 6000, fadeMs: 600 },
       },
-      cards: { current: true, hourly: true, daily: true, soilForecast: true },
+      cards: { current: true, minutely: true, hourly: true, daily: true, soilForecast: true },
       hourlySeries: { temperature: true, precipitation: true, wind: true },
       hourlyPoints: 5,
       hourlyStepHours: 4,
@@ -78,6 +78,13 @@ class WeatherConditionsCard extends HTMLElement {
 
   _renderCharts(state, cfg) {
     const root = this.shadowRoot;
+    if (cfg.cards.minutely !== false && state.minutely && state.minutely.length) {
+      const canvas = root.getElementById("wc-minutely-chart");
+      if (canvas) {
+        if (this._minutelyChart) this._minutelyChart.destroy();
+        this._minutelyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.minutelyChartConfig(state));
+      }
+    }
     if (cfg.cards.hourly && state.hourly.length) {
       const canvas = root.getElementById("wc-hourly-chart");
       if (canvas) {
@@ -125,7 +132,7 @@ class WeatherConditionsCard extends HTMLElement {
   }
 
   disconnectedCallback() {
-    ["_hourlyChart", "_dailyChart", "_soilChart"].forEach((ref) => {
+    ["_minutelyChart", "_hourlyChart", "_dailyChart", "_soilChart"].forEach((ref) => {
       if (this[ref]) this[ref].destroy();
     });
   }

@@ -60,6 +60,12 @@
   white-space: nowrap;
 }
 
+.wc-summary {
+  margin-top: 4px;
+  font-style: italic;
+  line-height: 1.25;
+}
+
 .wc-current-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -171,6 +177,18 @@
 
 .wc-chart-wrap canvas {
   max-height: 64px;
+}
+
+.wc-chart-wrap-mini {
+  height: 28px;
+}
+
+.wc-chart-wrap-mini canvas {
+  max-height: 28px;
+}
+
+.wc-minutely-callout {
+  margin-bottom: 4px;
 }
 
 /* ---- unit cycling (see core/unitcycle.js) ---- */
