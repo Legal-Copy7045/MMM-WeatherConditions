@@ -3,14 +3,31 @@
     "step": {
       "user": {
         "title": "Weather Conditions",
-        "description": "Pick the weather entity to base the current-conditions card and MagicMirror feed on. Any weather.* entity works (Met.no, OpenWeatherMap, AccuWeather, ...).",
+        "description": "Choose how this instance gets its weather data.",
+        "menu_options": {
+          "weather_entity": "Use an existing weather entity",
+          "openweathermap": "Poll OpenWeatherMap directly"
+        }
+      },
+      "weather_entity": {
+        "title": "Existing weather entity",
+        "description": "Pick the weather entity to base the current-conditions card and MagicMirror feed on. Forecast support varies by integration — if hourly/daily stay empty afterwards, check Developer Tools → Actions → weather.get_forecasts against this entity.",
         "data": {
           "weather_entity": "Weather entity"
+        }
+      },
+      "openweathermap": {
+        "title": "OpenWeatherMap One Call 3.0",
+        "description": "Polls OpenWeatherMap directly for a guaranteed-complete feature set (current, hourly, daily, alerts, minutely nowcast, UV, moon data) independent of which weather.* entities Home Assistant happens to have. Needs a free OpenWeatherMap API key with One Call 3.0 enabled — openweathermap.org requires a card on file even for the free 1,000 calls/day tier, but a 5-minute poll interval only uses ~288 calls/day.",
+        "data": {
+          "owm_api_key": "API key",
+          "owm_latitude": "Latitude (defaults to your Home Assistant location)",
+          "owm_longitude": "Longitude (defaults to your Home Assistant location)"
         }
       }
     },
     "abort": {
-      "already_configured": "This weather entity is already configured."
+      "already_configured": "This weather source is already configured."
     }
   },
   "options": {

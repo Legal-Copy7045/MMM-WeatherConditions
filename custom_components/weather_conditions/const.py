@@ -3,7 +3,21 @@
 DOMAIN = "weather_conditions"
 PLATFORMS = ["sensor"]
 
+# Two mutually exclusive sources: wrap an existing HA weather.* entity (its
+# forecast support varies wildly by integration -- confirmed the hard way:
+# HA's own OpenWeatherMap entity doesn't support get_forecasts at all), or
+# poll OpenWeather One Call 3.0 directly ourselves for a guaranteed-complete
+# feature set (current + hourly + daily + alerts + minutely + UV + moon),
+# the same data MM's own "direct" mode B uses.
+CONF_SOURCE = "source"
+SOURCE_WEATHER_ENTITY = "weather_entity"
+SOURCE_OPENWEATHERMAP = "openweathermap"
+
 CONF_WEATHER_ENTITY = "weather_entity"
+CONF_OWM_API_KEY = "owm_api_key"
+CONF_OWM_LATITUDE = "owm_latitude"
+CONF_OWM_LONGITUDE = "owm_longitude"
+
 CONF_FROST_BELOW_C = "frost_below_c"
 CONF_HEAT_ABOVE_C = "heat_above_c"
 CONF_WIND_ABOVE_KMH = "wind_above_kmh"

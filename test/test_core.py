@@ -52,6 +52,34 @@ class StateTest(unittest.TestCase):
         self.assertEqual(s["current"]["soilTempC"], 9.4)
         self.assertEqual(s["current"]["icon"], "clear-day")
 
+    def test_from_open_weather_map_daily_and_minutely_fields(self):
+        raw = {
+            "lat": 40.7,
+            "lon": -79.8,
+            "current": {"dt": 1700000000, "temp": 18, "humidity": 60, "weather": [{"main": "Clouds", "icon": "03d"}]},
+            "minutely": [{"dt": 1700000060, "precipitation": 0.1}],
+            "daily": [
+                {
+                    "dt": 1700000000,
+                    "temp": {"min": 12, "max": 22, "morn": 14, "day": 20, "eve": 18, "night": 13},
+                    "weather": [{"main": "Clear", "icon": "01d"}],
+                    "uvi": 5,
+                    "summary": "Expect a sunny day",
+                    "moon_phase": 0.5,
+                    "pop": 0.1,
+                }
+            ],
+            "alerts": [{"event": "Heat Advisory", "description": "Stay hydrated"}],
+        }
+        s = state.from_open_weather_map(raw)
+        self.assertEqual(s["daily"][0]["tempDayC"], 20)
+        self.assertEqual(s["daily"][0]["tempNightC"], 13)
+        self.assertEqual(s["daily"][0]["uvIndex"], 5)
+        self.assertEqual(s["daily"][0]["summary"], "Expect a sunny day")
+        self.assertEqual(s["daily"][0]["moonPhase"], 0.5)
+        self.assertEqual(s["minutely"][0]["precipMmh"], 0.1)
+        self.assertEqual(s["alerts"][0]["label"], "Heat Advisory")
+
     def test_from_ha_weather_converts_imperial_entity(self):
         # Regression: an HA weather entity reports in its own unit system
         # (its *_unit attributes say which) — raw values must be converted,

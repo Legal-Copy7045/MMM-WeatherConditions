@@ -36,6 +36,7 @@ module.exports = NodeHelper.create({
 
       normalized.alerts = conditions.deriveAlerts(normalized, config.alerts || {});
       normalized.soilForecast = normalized.soilForecast || [];
+      normalized.minutely = normalized.minutely || [];
       normalized.stale = false;
 
       this.writeCache(normalized);
