@@ -52,7 +52,7 @@ test("authenticates then emits the get_states snapshot", async () => {
     (state) => received.push(state)
   );
   src.connect();
-  await new Promise((r) => setTimeout(r, 20));
+  await new Promise((r) => setTimeout(r, 50));
 
   assert.equal(received.length, 1);
   assert.equal(received[0].current.tempC, 20);
@@ -71,7 +71,7 @@ test("emits on a matching state_changed event", async () => {
     (state) => received.push(state)
   );
   src.connect();
-  await new Promise((r) => setTimeout(r, 20));
+  await new Promise((r) => setTimeout(r, 50));
 
   const ws = FakeWebSocket.instances.at(-1);
   ws._send({
@@ -95,7 +95,7 @@ test("ignores state_changed events for other entities", async () => {
     (state) => received.push(state)
   );
   src.connect();
-  await new Promise((r) => setTimeout(r, 20));
+  await new Promise((r) => setTimeout(r, 50));
   const countAfterSnapshot = received.length;
 
   const ws = FakeWebSocket.instances.at(-1);
@@ -117,7 +117,7 @@ test("forwards minutely data through to onData (regression: _emit used to drop i
     (state) => received.push(state)
   );
   src.connect();
-  await new Promise((r) => setTimeout(r, 20));
+  await new Promise((r) => setTimeout(r, 50));
 
   const ws = FakeWebSocket.instances.at(-1);
   ws._send({

@@ -131,23 +131,31 @@ function hourlyCardHtml(state, config, fmt = defaultFmt) {
   `;
 }
 
+/**
+ * The Daily Forecast card alternates its chart between the day-by-day
+ * temperature+precip view and a multi-day soil-temperature view (when soil
+ * forecast data is configured) -- both sections are always in the markup;
+ * the frontend toggles which is `hidden` and (re)instantiates whichever
+ * chart is currently visible on a timer, same pattern as the unit cycling.
+ */
 function dailyCardHtml(state, config, fmt = defaultFmt) {
   const rows = (state.daily || []).slice(0, config.dailyDays || 5);
   const heads = forecastHeadsHtml(rows, config, { weekday: "short" }, fmt);
+  const hasSoil = config.cards && config.cards.soilForecast && state.soilForecast && state.soilForecast.length;
   return `
     <div class="wc-card wc-daily">
-      <div class="wc-card-title">Daily Forecast</div>
-      <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="90"></canvas></div>
-    </div>
-  `;
-}
-
-function soilForecastCardHtml(state, config) {
-  return `
-    <div class="wc-card wc-soil">
-      <div class="wc-card-title">Soil Temp — ${config.soilForecastDays || 3}-Day</div>
-      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="90"></canvas></div>
+      <div class="wc-card-title" id="wc-daily-title">Daily Forecast</div>
+      <div id="wc-daily-temp-view">
+        <div class="wc-hourly-heads">${heads}</div>
+        <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="90"></canvas></div>
+      </div>
+      ${
+        hasSoil
+          ? `<div id="wc-daily-soil-view" hidden>
+               <div class="wc-chart-wrap"><canvas id="wc-daily-soil-chart" height="90"></canvas></div>
+             </div>`
+          : ""
+      }
     </div>
   `;
 }
@@ -189,7 +197,6 @@ function weatherHtml(state, config, fmt = defaultFmt) {
   if (cards.minutely !== false && state.minutely && state.minutely.length) html += minutelyCardHtml(state, config);
   if (cards.hourly !== false && state.hourly && state.hourly.length) html += hourlyCardHtml(state, config, fmt);
   if (cards.daily !== false && state.daily && state.daily.length) html += dailyCardHtml(state, config, fmt);
-  if (cards.soilForecast && state.soilForecast && state.soilForecast.length) html += soilForecastCardHtml(state, config);
   html += `</div>`;
   return html;
 }
@@ -200,7 +207,6 @@ const __exports = {
   minutelyCalloutText,
   hourlyCardHtml,
   dailyCardHtml,
-  soilForecastCardHtml,
   weatherHtml,
   cyclingValue,
   unitKindFor,

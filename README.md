@@ -39,7 +39,13 @@ Icon + temperature + condition, feels-like, today's plain-English summary (OWM o
 
 **Next Hour** (OWM only, needs `minutely` data): a glanceable callout — "Rain starting in 12 min", "Rain ending in 8 min", "Rain for the next hour", or "No rain expected in the next hour" — above a dense, label-free area chart of the next 60 minutes' precipitation rate.
 
-Hourly and daily charts (Chart.js) show a temperature line (points coloured by wind speed), precipitation bars labelled with their amount (e.g. "0.5 mm") when non-zero, and a wind arrow + icon above each point. Every card, and every series within the hourly/daily charts, can be switched on or off independently (`cards`, `hourlySeries`, `dailySeries`).
+Hourly and daily charts (Chart.js) show a temperature line labelled with its value at each point (points coloured by wind speed; the daily chart adds a dashed low-temperature line, labelled separately), precipitation bars labelled with their amount (e.g. "0.5 mm") when non-zero, and a wind arrow + icon above each point. Every card, and every series within the hourly/daily charts, can be switched on or off independently (`cards`, `hourlySeries`, `dailySeries`).
+
+The Daily Forecast card's chart alternates on a timer (`dailyGraphSwitchMs`, default 10s) between that day-by-day temperature+precip view and a multi-day soil-temperature chart (`soilForecastDays`, default 5), when `cards.soilForecast` is on and soil data is configured in the HA integration — the card's title swaps between "Daily Forecast" and "Soil Temp — N-Day" to match. There's no separate soil card anymore; it lives inside this toggle.
+
+The module is 320px wide by default, sized to match a sports-scoreboard-style module alongside it — there's no config option for width, edit the `.wc-weather-conditions` rule in `MMM-WeatherConditions.css` to change it.
+
+**Unit cycling now applies to the charts too**, not just the current-conditions card. Chart.js canvases can't take part in the CSS crossfade the header values use, so instead the hourly/daily/soil charts periodically rebuild themselves against the next configured temperature unit — a hard swap on the same `cycleMs` interval, rather than a fade.
 
 ## Unit cycling
 

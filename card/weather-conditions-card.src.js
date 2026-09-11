@@ -32,7 +32,8 @@ class WeatherConditionsCard extends HTMLElement {
       hourlyStepHours: 4,
       dailySeries: { temperature: true, precipitation: true, wind: true },
       dailyDays: 5,
-      soilForecastDays: 3,
+      soilForecastDays: 5,
+      dailyGraphSwitchMs: 10000,
       ...config,
     };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });
@@ -48,6 +49,7 @@ class WeatherConditionsCard extends HTMLElement {
     const a = entity.attributes || {};
     const state = {
       current: a.current || {},
+      minutely: a.minutely || [],
       hourly: a.hourly || [],
       daily: a.daily || [],
       alerts: a.alerts || [],
@@ -57,14 +59,18 @@ class WeatherConditionsCard extends HTMLElement {
     const stateKey = JSON.stringify({ c: a.current, h: (a.hourly || []).length, d: (a.daily || []).length });
     if (stateKey === this._lastKey) return; // avoid re-render/chart-thrash on unrelated hass updates
     this._lastKey = stateKey;
+    this._state = state;
 
     const cfg = { ...this._config, locale: this._config.locale || hass.locale?.language };
+    this._cfg = cfg;
     this.shadowRoot.innerHTML = `<ha-card><style>${CARD_CSS}</style>${WeatherCore.render.weatherHtml(state, cfg, this._fmt)}</ha-card>`;
 
     // Chart canvases + unit-cycle elements just got (re)created — wire them up.
     requestAnimationFrame(() => {
       this._renderCharts(state, cfg);
       this._startCycling(cfg);
+      this._startChartCycling(state);
+      this._startDailyViewToggle(state);
     });
   }
 
@@ -76,8 +82,19 @@ class WeatherConditionsCard extends HTMLElement {
     }
   }
 
+  /** Rotates cfg.units.temperature.list so the active cycle unit is first --
+   *  chart config builders always read list[0], same trick as the MM module. */
+  _cycledConfig(cfg) {
+    const list = (cfg.units.temperature || {}).list || [];
+    if (list.length < 2) return cfg;
+    const idx = (this._chartUnitIdx || 0) % list.length;
+    const rotated = [list[idx], ...list.filter((_, i) => i !== idx)];
+    return { ...cfg, units: { ...cfg.units, temperature: { ...cfg.units.temperature, list: rotated } } };
+  }
+
   _renderCharts(state, cfg) {
     const root = this.shadowRoot;
+    const cycled = this._cycledConfig(cfg);
     if (cfg.cards.minutely !== false && state.minutely && state.minutely.length) {
       const canvas = root.getElementById("wc-minutely-chart");
       if (canvas) {
@@ -89,23 +106,64 @@ class WeatherConditionsCard extends HTMLElement {
       const canvas = root.getElementById("wc-hourly-chart");
       if (canvas) {
         if (this._hourlyChart) this._hourlyChart.destroy();
-        this._hourlyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.hourlyChartConfig(state, cfg, this._fmt));
+        this._hourlyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.hourlyChartConfig(state, cycled, this._fmt));
       }
     }
     if (cfg.cards.daily && state.daily.length) {
+      this._renderDailySection(state, cfg);
+    }
+  }
+
+  /** Rebuilds whichever of the Daily Forecast card's two views (temp+precip,
+   *  or soil temperature) is currently active, per this._dailyShowSoil. */
+  _renderDailySection(state, cfg) {
+    const root = this.shadowRoot;
+    const cycled = this._cycledConfig(cfg);
+    const hasSoil = cfg.cards.soilForecast && state.soilForecast && state.soilForecast.length;
+    const showSoil = !!(this._dailyShowSoil && hasSoil);
+
+    const tempView = root.getElementById("wc-daily-temp-view");
+    const soilView = root.getElementById("wc-daily-soil-view");
+    const title = root.getElementById("wc-daily-title");
+    if (tempView) tempView.hidden = showSoil;
+    if (soilView) soilView.hidden = !showSoil;
+    if (title) title.textContent = showSoil ? `Soil Temp — ${cfg.soilForecastDays || 5}-Day` : "Daily Forecast";
+
+    if (this._dailyChart) { this._dailyChart.destroy(); this._dailyChart = null; }
+    if (this._dailySoilChart) { this._dailySoilChart.destroy(); this._dailySoilChart = null; }
+    if (showSoil) {
+      const canvas = root.getElementById("wc-daily-soil-chart");
+      if (canvas) this._dailySoilChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.soilChartConfig(state, cycled, this._fmt));
+    } else {
       const canvas = root.getElementById("wc-daily-chart");
-      if (canvas) {
-        if (this._dailyChart) this._dailyChart.destroy();
-        this._dailyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.dailyChartConfig(state, cfg, this._fmt));
-      }
+      if (canvas) this._dailyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.dailyChartConfig(state, cycled, this._fmt));
     }
-    if (cfg.cards.soilForecast && state.soilForecast.length) {
-      const canvas = root.getElementById("wc-soil-chart");
-      if (canvas) {
-        if (this._soilChart) this._soilChart.destroy();
-        this._soilChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.soilChartConfig(state, cfg, this._fmt));
-      }
-    }
+  }
+
+  /** Chart.js canvases can't take part in the DOM-based crossfade _startCycling
+   *  drives, so instead they periodically rebuild against the next configured
+   *  temperature unit -- a hard swap, but the same "cycle through units"
+   *  behavior the header values get, applied to the graphs too. */
+  _startChartCycling(state) {
+    if (this._chartCycleTimer) clearInterval(this._chartCycleTimer);
+    const list = (this._cfg.units.temperature || {}).list || [];
+    if (list.length < 2) return;
+    const ms = this._cfg.units.temperature.cycleMs || 6000;
+    this._chartCycleTimer = setInterval(() => {
+      this._chartUnitIdx = ((this._chartUnitIdx || 0) + 1) % list.length;
+      this._renderCharts(state, this._cfg);
+    }, ms);
+  }
+
+  _startDailyViewToggle(state) {
+    if (this._dailyViewTimer) clearInterval(this._dailyViewTimer);
+    const hasSoil = this._cfg.cards.soilForecast && state.soilForecast && state.soilForecast.length;
+    if (!hasSoil) return;
+    const ms = this._cfg.dailyGraphSwitchMs || 10000;
+    this._dailyViewTimer = setInterval(() => {
+      this._dailyShowSoil = !this._dailyShowSoil;
+      this._renderDailySection(state, this._cfg);
+    }, ms);
   }
 
   _startCycling(cfg) {
@@ -132,9 +190,10 @@ class WeatherConditionsCard extends HTMLElement {
   }
 
   disconnectedCallback() {
-    ["_minutelyChart", "_hourlyChart", "_dailyChart", "_soilChart"].forEach((ref) => {
+    ["_minutelyChart", "_hourlyChart", "_dailyChart", "_dailySoilChart"].forEach((ref) => {
       if (this[ref]) this[ref].destroy();
     });
+    [this._chartCycleTimer, this._dailyViewTimer].forEach((t) => t && clearInterval(t));
   }
 }
 
