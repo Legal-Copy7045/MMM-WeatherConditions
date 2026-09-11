@@ -109,3 +109,27 @@ test("ignores state_changed events for other entities", async () => {
 
   assert.equal(received.length, countAfterSnapshot);
 });
+
+test("forwards minutely data through to onData (regression: _emit used to drop it)", async () => {
+  const received = [];
+  const src = new HaWeatherSource(
+    { url: "http://ha.local:8123", token: "tok", statusEntity: "sensor.weather_conditions_status" },
+    (state) => received.push(state)
+  );
+  src.connect();
+  await new Promise((r) => setTimeout(r, 20));
+
+  const ws = FakeWebSocket.instances.at(-1);
+  ws._send({
+    type: "event",
+    event: {
+      event_type: "state_changed",
+      data: {
+        entity_id: "sensor.weather_conditions_status",
+        new_state: { attributes: { current: { tempC: 20 }, minutely: [{ precipMmh: 1.2 }] } },
+      },
+    },
+  });
+
+  assert.deepEqual(received.at(-1).minutely, [{ precipMmh: 1.2 }]);
+});

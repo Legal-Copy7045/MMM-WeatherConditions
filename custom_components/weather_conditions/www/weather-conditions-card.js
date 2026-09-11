@@ -1399,7 +1399,14 @@ const CARD_CSS = `.wc-weather-conditions {
   color: #eef1f8;
   font-family: inherit;
   width: 300px;
-  font-size: 0.82em;
+  /* Absolute, not relative: MagicMirror's own page font-size (~20px, sized
+     for room-distance reading) is much larger than a typical browser
+     default, and every nested rule below is em-based off this value — an
+     inherited/relative size here made every column ~25% too wide for its
+     box (confirmed: 67.6px of text in a 56px column) and the per-hour wind
+     labels ran together with no gap. Pinning this in px decouples the
+     module's whole internal scale from whatever the host page happens to use. */
+  font-size: 13px;
 }
 
 .wc-card {
