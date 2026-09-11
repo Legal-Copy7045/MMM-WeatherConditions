@@ -1,3 +1,4 @@
+(function () {
 /**
  * Soil-temperature forecast from "day-bucket" sensors: a group of entities
  * (day 0, day 1, ...), each holding a bracketed CSV string of hourly values
@@ -42,3 +43,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.soilforecast = __exports;
 }
+})();

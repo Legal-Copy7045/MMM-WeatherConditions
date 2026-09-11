@@ -1,3 +1,4 @@
+(function () {
 /**
  * SVG rendering: condition icons, the sunrise/sunset arc, and wind
  * direction arrows. Pure string-builders (no DOM), shared by the MM
@@ -158,3 +159,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.visuals = __exports;
 }
+})();

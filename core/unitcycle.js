@@ -1,3 +1,4 @@
+(function () {
 /**
  * Unit-cycling values: a single value (temperature, pressure, wind, ...)
  * that rotates through a configured list of units, cross-fading between
@@ -74,3 +75,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.unitcycle = __exports;
 }
+})();

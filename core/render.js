@@ -1,3 +1,4 @@
+(function () {
 /**
  * HTML-string builders for each card, shared by the MM module and the
  * Lovelace card so the layout only exists in one place. Pure functions:
@@ -173,3 +174,4 @@ if (typeof module === "object" && module.exports) {
   window.WeatherCore = window.WeatherCore || {};
   window.WeatherCore.render = __exports;
 }
+})();
