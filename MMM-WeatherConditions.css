@@ -1,25 +1,26 @@
 .wc-weather-conditions {
   color: #eef1f8;
   font-family: inherit;
-  max-width: 620px;
+  width: 300px;
+  font-size: 0.82em;
 }
 
 .wc-card {
   background: rgba(20, 22, 30, 0.55);
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
 }
 
 .wc-card-title {
-  font-size: 1.1em;
+  font-size: 1em;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: #dfe4f2;
 }
 
 .wc-stale-badge {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: #f2733c;
 }
 
@@ -27,81 +28,108 @@
 .wc-current-main {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
 }
 
 .wc-current-icon svg {
   display: block;
+  width: 44px;
+  height: 44px;
 }
 
 .wc-current-temp {
-  font-size: 2.6em;
+  font-size: 1.9em;
   font-weight: 300;
   line-height: 1;
 }
 
 .wc-current-cond {
-  margin-left: 6px;
+  margin-left: 4px;
+  min-width: 0;
 }
 
 .wc-cond-text {
   text-transform: lowercase;
   color: #c7cede;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wc-feelslike {
+  white-space: nowrap;
 }
 
 .wc-current-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px 24px;
-  margin-top: 14px;
+  gap: 4px 10px;
+  margin-top: 8px;
 }
 
 .wc-stat {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .wc-stat-label {
-  font-size: 0.75em;
+  font-size: 0.72em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: #8b93a8;
 }
 
 .wc-stat-value {
-  font-size: 1.15em;
+  font-size: 1em;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.wc-stat-value svg {
+  flex: none;
 }
 
 .wc-stat-sub {
-  margin-top: 2px;
+  margin-top: 1px;
+  white-space: nowrap;
 }
 
 .wc-sunarc-wrap {
-  margin-top: 10px;
+  margin-top: 6px;
   text-align: center;
+  line-height: 0;
+}
+
+.wc-sunarc-wrap svg {
+  width: 100%;
+  height: auto;
+  max-height: 54px;
 }
 
 .wc-wind-legend {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .wc-wind-legend-bar {
-  height: 6px;
+  height: 5px;
   border-radius: 3px;
 }
 
 .wc-wind-legend-ticks {
   display: flex;
   justify-content: space-between;
-  font-size: 0.7em;
-  margin-top: 3px;
+  font-size: 0.65em;
+  margin-top: 2px;
 }
 
-/* ---- hourly / daily ---- */
+/* ---- hourly / daily / soil ---- */
 .wc-hourly-heads {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .wc-hcol {
@@ -112,27 +140,44 @@
   flex: 1;
 }
 
+.wc-hcol-time {
+  font-size: 0.85em;
+}
+
 .wc-hcol-icon svg {
   display: block;
+  width: 20px;
+  height: 20px;
 }
 
 .wc-hcol-wind {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   white-space: nowrap;
+  font-size: 0.8em;
+}
+
+.wc-hcol-wind svg {
+  width: 11px;
+  height: 11px;
 }
 
 .wc-chart-wrap {
   position: relative;
   width: 100%;
+  height: 64px;
+}
+
+.wc-chart-wrap canvas {
+  max-height: 64px;
 }
 
 /* ---- unit cycling (see core/unitcycle.js) ---- */
 .wc-unit-cycle {
   position: relative;
   display: inline-block;
-  min-width: 3.6em;
+  min-width: 3.4em;
   height: 1.2em;
   vertical-align: bottom;
 }

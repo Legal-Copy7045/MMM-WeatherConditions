@@ -566,7 +566,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         <div class="wc-stat">
           <span class="wc-stat-label">Wind</span>
           <span class="wc-stat-value">${visuals.windArrowSvg(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
-          <span class="wc-stat-sub dimmed small">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>
+          ${cur.windGustKmh != null ? `<span class="wc-stat-sub dimmed small">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
         </div>
         <div class="wc-stat">
           <span class="wc-stat-label">UV Index</span>
@@ -599,25 +599,25 @@ function forecastHeadsHtml(rows, config, timeOpts, fmt) {
 
 function hourlyCardHtml(state, config, fmt = defaultFmt) {
   const step = Math.max(1, config.hourlyStepHours || 1);
-  const rows = (state.hourly || []).filter((_, i) => i % step === 0).slice(0, config.hourlyPoints || 7);
+  const rows = (state.hourly || []).filter((_, i) => i % step === 0).slice(0, config.hourlyPoints || 5);
   const heads = forecastHeadsHtml(rows, config, { hour: "numeric" }, fmt);
   return `
     <div class="wc-card wc-hourly">
       <div class="wc-card-title">Hourly Forecast</div>
       <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-hourly-chart" height="90"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-hourly-chart" height="64"></canvas></div>
     </div>
   `;
 }
 
 function dailyCardHtml(state, config, fmt = defaultFmt) {
-  const rows = (state.daily || []).slice(0, config.dailyDays || 8);
+  const rows = (state.daily || []).slice(0, config.dailyDays || 5);
   const heads = forecastHeadsHtml(rows, config, { weekday: "short" }, fmt);
   return `
     <div class="wc-card wc-daily">
       <div class="wc-card-title">Daily Forecast</div>
       <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="110"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="64"></canvas></div>
     </div>
   `;
 }
@@ -625,8 +625,8 @@ function dailyCardHtml(state, config, fmt = defaultFmt) {
 function soilForecastCardHtml(state, config) {
   return `
     <div class="wc-card wc-soil">
-      <div class="wc-card-title">Soil Temperature — ${config.soilForecastDays || 6}-Day Forecast</div>
-      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="90"></canvas></div>
+      <div class="wc-card-title">Soil Temp — ${config.soilForecastDays || 3}-Day</div>
+      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="64"></canvas></div>
     </div>
   `;
 }
@@ -681,15 +681,17 @@ const deps = (() => {
 const { units, windscale } = deps;
 
 function baseChartOptions() {
+  const tickFont = { size: 9 };
   return {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
+    layout: { padding: 0 },
     plugins: { legend: { display: false } },
     scales: {
-      x: { ticks: { color: "#c7cede" }, grid: { color: "#2a3247" } },
-      temp: { position: "left", ticks: { color: "#f4c542" }, grid: { color: "#2a3247" } },
-      precip: { position: "right", ticks: { color: "#5aa7ff" }, grid: { display: false } },
+      x: { ticks: { color: "#c7cede", font: tickFont }, grid: { color: "#2a3247" } },
+      temp: { position: "left", ticks: { color: "#f4c542", font: tickFont }, grid: { color: "#2a3247" } },
+      precip: { position: "right", beginAtZero: true, suggestedMax: 5, ticks: { color: "#5aa7ff", font: tickFont }, grid: { display: false } },
     },
   };
 }
@@ -721,7 +723,7 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
       data: rows.map((r) => units.fromBase("temperature", r[field], tempUnit)),
       borderColor: "#f4c542",
       pointBackgroundColor: rows.map((r) => windscale.colorForKmh(r.windKmh)),
-      pointRadius: 4,
+      pointRadius: 3,
       tension: 0.3,
     });
     if (isDaily) {
@@ -752,17 +754,17 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
 
 function hourlyChartConfig(state, config, fmt) {
   const step = Math.max(1, config.hourlyStepHours || 1);
-  const rows = (state.hourly || []).filter((_, i) => i % step === 0).slice(0, config.hourlyPoints || 7);
+  const rows = (state.hourly || []).filter((_, i) => i % step === 0).slice(0, config.hourlyPoints || 5);
   return lineBarChartConfig(rows, config, "time", false, fmt);
 }
 
 function dailyChartConfig(state, config, fmt) {
-  const rows = (state.daily || []).slice(0, config.dailyDays || 8);
+  const rows = (state.daily || []).slice(0, config.dailyDays || 5);
   return lineBarChartConfig(rows, config, "date", true, fmt);
 }
 
 function soilChartConfig(state, config, fmt = defaultFmt) {
-  const hours = (config.soilForecastDays || 6) * 24;
+  const hours = (config.soilForecastDays || 3) * 24;
   const rows = (state.soilForecast || []).slice(0, hours);
   const tempUnit = config.units.temperature.list[0];
   return {
@@ -1211,25 +1213,26 @@ if (typeof module === "object" && module.exports) {
 const CARD_CSS = `.wc-weather-conditions {
   color: #eef1f8;
   font-family: inherit;
-  max-width: 620px;
+  width: 300px;
+  font-size: 0.82em;
 }
 
 .wc-card {
   background: rgba(20, 22, 30, 0.55);
-  border-radius: 14px;
-  padding: 14px 18px;
-  margin-bottom: 12px;
+  border-radius: 10px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
 }
 
 .wc-card-title {
-  font-size: 1.1em;
+  font-size: 1em;
   font-weight: 600;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   color: #dfe4f2;
 }
 
 .wc-stale-badge {
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: #f2733c;
 }
 
@@ -1237,81 +1240,108 @@ const CARD_CSS = `.wc-weather-conditions {
 .wc-current-main {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 8px;
 }
 
 .wc-current-icon svg {
   display: block;
+  width: 44px;
+  height: 44px;
 }
 
 .wc-current-temp {
-  font-size: 2.6em;
+  font-size: 1.9em;
   font-weight: 300;
   line-height: 1;
 }
 
 .wc-current-cond {
-  margin-left: 6px;
+  margin-left: 4px;
+  min-width: 0;
 }
 
 .wc-cond-text {
   text-transform: lowercase;
   color: #c7cede;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wc-feelslike {
+  white-space: nowrap;
 }
 
 .wc-current-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px 24px;
-  margin-top: 14px;
+  gap: 4px 10px;
+  margin-top: 8px;
 }
 
 .wc-stat {
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .wc-stat-label {
-  font-size: 0.75em;
+  font-size: 0.72em;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.03em;
   color: #8b93a8;
 }
 
 .wc-stat-value {
-  font-size: 1.15em;
+  font-size: 1em;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.wc-stat-value svg {
+  flex: none;
 }
 
 .wc-stat-sub {
-  margin-top: 2px;
+  margin-top: 1px;
+  white-space: nowrap;
 }
 
 .wc-sunarc-wrap {
-  margin-top: 10px;
+  margin-top: 6px;
   text-align: center;
+  line-height: 0;
+}
+
+.wc-sunarc-wrap svg {
+  width: 100%;
+  height: auto;
+  max-height: 54px;
 }
 
 .wc-wind-legend {
-  margin-top: 10px;
+  margin-top: 6px;
 }
 
 .wc-wind-legend-bar {
-  height: 6px;
+  height: 5px;
   border-radius: 3px;
 }
 
 .wc-wind-legend-ticks {
   display: flex;
   justify-content: space-between;
-  font-size: 0.7em;
-  margin-top: 3px;
+  font-size: 0.65em;
+  margin-top: 2px;
 }
 
-/* ---- hourly / daily ---- */
+/* ---- hourly / daily / soil ---- */
 .wc-hourly-heads {
   display: flex;
   justify-content: space-between;
-  margin-bottom: 4px;
+  margin-bottom: 2px;
 }
 
 .wc-hcol {
@@ -1322,27 +1352,44 @@ const CARD_CSS = `.wc-weather-conditions {
   flex: 1;
 }
 
+.wc-hcol-time {
+  font-size: 0.85em;
+}
+
 .wc-hcol-icon svg {
   display: block;
+  width: 20px;
+  height: 20px;
 }
 
 .wc-hcol-wind {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 1px;
   white-space: nowrap;
+  font-size: 0.8em;
+}
+
+.wc-hcol-wind svg {
+  width: 11px;
+  height: 11px;
 }
 
 .wc-chart-wrap {
   position: relative;
   width: 100%;
+  height: 64px;
+}
+
+.wc-chart-wrap canvas {
+  max-height: 64px;
 }
 
 /* ---- unit cycling (see core/unitcycle.js) ---- */
 .wc-unit-cycle {
   position: relative;
   display: inline-block;
-  min-width: 3.6em;
+  min-width: 3.4em;
   height: 1.2em;
   vertical-align: bottom;
 }
@@ -1378,13 +1425,13 @@ class WeatherConditionsCard extends HTMLElement {
         precipitation: { list: ["mm"], cycleMs: 6000, fadeMs: 600 },
         visibility: { list: ["km"], cycleMs: 6000, fadeMs: 600 },
       },
-      cards: { current: true, hourly: true, daily: true, soilForecast: false },
+      cards: { current: true, hourly: true, daily: true, soilForecast: true },
       hourlySeries: { temperature: true, precipitation: true, wind: true },
-      hourlyPoints: 7,
+      hourlyPoints: 5,
       hourlyStepHours: 4,
       dailySeries: { temperature: true, precipitation: true, wind: true },
-      dailyDays: 8,
-      soilForecastDays: 6,
+      dailyDays: 5,
+      soilForecastDays: 3,
       ...config,
     };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });

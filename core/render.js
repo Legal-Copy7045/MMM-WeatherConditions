@@ -80,7 +80,7 @@ function currentCardHtml(state, config, fmt = defaultFmt) {
         <div class="wc-stat">
           <span class="wc-stat-label">Wind</span>
           <span class="wc-stat-value">${visuals.windArrowSvg(cur.windDirDeg, cur.windKmh, { size: 16 })} ${uc("wc-wind", "wind", cur.windKmh)}</span>
-          <span class="wc-stat-sub dimmed small">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>
+          ${cur.windGustKmh != null ? `<span class="wc-stat-sub dimmed small">Gusts ${uc("wc-gust", "wind", cur.windGustKmh)}</span>` : ""}
         </div>
         <div class="wc-stat">
           <span class="wc-stat-label">UV Index</span>
@@ -113,25 +113,25 @@ function forecastHeadsHtml(rows, config, timeOpts, fmt) {
 
 function hourlyCardHtml(state, config, fmt = defaultFmt) {
   const step = Math.max(1, config.hourlyStepHours || 1);
-  const rows = (state.hourly || []).filter((_, i) => i % step === 0).slice(0, config.hourlyPoints || 7);
+  const rows = (state.hourly || []).filter((_, i) => i % step === 0).slice(0, config.hourlyPoints || 5);
   const heads = forecastHeadsHtml(rows, config, { hour: "numeric" }, fmt);
   return `
     <div class="wc-card wc-hourly">
       <div class="wc-card-title">Hourly Forecast</div>
       <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-hourly-chart" height="90"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-hourly-chart" height="64"></canvas></div>
     </div>
   `;
 }
 
 function dailyCardHtml(state, config, fmt = defaultFmt) {
-  const rows = (state.daily || []).slice(0, config.dailyDays || 8);
+  const rows = (state.daily || []).slice(0, config.dailyDays || 5);
   const heads = forecastHeadsHtml(rows, config, { weekday: "short" }, fmt);
   return `
     <div class="wc-card wc-daily">
       <div class="wc-card-title">Daily Forecast</div>
       <div class="wc-hourly-heads">${heads}</div>
-      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="110"></canvas></div>
+      <div class="wc-chart-wrap"><canvas id="wc-daily-chart" height="64"></canvas></div>
     </div>
   `;
 }
@@ -139,8 +139,8 @@ function dailyCardHtml(state, config, fmt = defaultFmt) {
 function soilForecastCardHtml(state, config) {
   return `
     <div class="wc-card wc-soil">
-      <div class="wc-card-title">Soil Temperature — ${config.soilForecastDays || 6}-Day Forecast</div>
-      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="90"></canvas></div>
+      <div class="wc-card-title">Soil Temp — ${config.soilForecastDays || 3}-Day</div>
+      <div class="wc-chart-wrap"><canvas id="wc-soil-chart" height="64"></canvas></div>
     </div>
   `;
 }

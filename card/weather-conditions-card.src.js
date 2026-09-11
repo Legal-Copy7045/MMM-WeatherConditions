@@ -26,13 +26,13 @@ class WeatherConditionsCard extends HTMLElement {
         precipitation: { list: ["mm"], cycleMs: 6000, fadeMs: 600 },
         visibility: { list: ["km"], cycleMs: 6000, fadeMs: 600 },
       },
-      cards: { current: true, hourly: true, daily: true, soilForecast: false },
+      cards: { current: true, hourly: true, daily: true, soilForecast: true },
       hourlySeries: { temperature: true, precipitation: true, wind: true },
-      hourlyPoints: 7,
+      hourlyPoints: 5,
       hourlyStepHours: 4,
       dailySeries: { temperature: true, precipitation: true, wind: true },
-      dailyDays: 8,
-      soilForecastDays: 6,
+      dailyDays: 5,
+      soilForecastDays: 3,
       ...config,
     };
     if (!this.shadowRoot) this.attachShadow({ mode: "open" });

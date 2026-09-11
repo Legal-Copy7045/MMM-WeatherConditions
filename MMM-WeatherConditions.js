@@ -34,17 +34,17 @@ Module.register("MMM-WeatherConditions", {
       current: true,
       hourly: true,
       daily: true,
-      soilForecast: false,
+      soilForecast: true,
     },
 
     hourlySeries: { temperature: true, precipitation: true, wind: true },
-    hourlyPoints: 7,
+    hourlyPoints: 5,
     hourlyStepHours: 4,
 
     dailySeries: { temperature: true, precipitation: true, wind: true },
-    dailyDays: 8,
+    dailyDays: 5,
 
-    soilForecastDays: 6,
+    soilForecastDays: 3,
 
     // Overrides merged onto core/conditions.js CHECK_DEFAULTS.
     alerts: {},
