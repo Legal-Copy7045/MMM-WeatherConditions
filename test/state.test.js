@@ -40,6 +40,31 @@ test("fromHaWeather overlays supplemental extra sensors", () => {
   assert.equal(s.current.icon, "clear-day");
 });
 
+test("fromHaWeather converts an imperial-unit weather entity to canonical base units", () => {
+  // Regression: an HA weather entity reports in ITS OWN unit system (here:
+  // OpenWeatherMap configured imperial) — the *_unit attributes say so, and
+  // the raw values must be converted, not passed through as if already °C/hPa/km.
+  const s = state.fromHaWeather({
+    state: "cloudy",
+    attributes: {
+      temperature: 67,
+      temperature_unit: "°F",
+      apparent_temperature: 68,
+      humidity: 92,
+      pressure: 29.97,
+      pressure_unit: "inHg",
+      wind_speed: 5,
+      wind_speed_unit: "mph",
+      visibility: 6.21,
+      visibility_unit: "mi",
+    },
+  });
+  assert.ok(Math.abs(s.current.tempC - 19.44) < 0.1);
+  assert.ok(Math.abs(s.current.pressureHpa - 1014.9) < 1);
+  assert.ok(Math.abs(s.current.windKmh - 8.05) < 0.1);
+  assert.ok(Math.abs(s.current.visibilityKm - 9.99) < 0.1);
+});
+
 test("computeDewPointC is sane for a warm humid day", () => {
   const dp = state.computeDewPointC(25, 80);
   assert.ok(dp > 19 && dp < 22);

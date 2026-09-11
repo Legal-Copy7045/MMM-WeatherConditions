@@ -52,6 +52,30 @@ class StateTest(unittest.TestCase):
         self.assertEqual(s["current"]["soilTempC"], 9.4)
         self.assertEqual(s["current"]["icon"], "clear-day")
 
+    def test_from_ha_weather_converts_imperial_entity(self):
+        # Regression: an HA weather entity reports in its own unit system
+        # (its *_unit attributes say which) — raw values must be converted,
+        # not passed through as if already SI/canonical.
+        s = state.from_ha_weather(
+            "cloudy",
+            {
+                "temperature": 67,
+                "temperature_unit": "°F",
+                "apparent_temperature": 68,
+                "humidity": 92,
+                "pressure": 29.97,
+                "pressure_unit": "inHg",
+                "wind_speed": 5,
+                "wind_speed_unit": "mph",
+                "visibility": 6.21,
+                "visibility_unit": "mi",
+            },
+        )
+        self.assertAlmostEqual(s["current"]["tempC"], 19.44, delta=0.1)
+        self.assertAlmostEqual(s["current"]["pressureHpa"], 1014.9, delta=1)
+        self.assertAlmostEqual(s["current"]["windKmh"], 8.05, delta=0.1)
+        self.assertAlmostEqual(s["current"]["visibilityKm"], 9.99, delta=0.1)
+
     def test_dew_point_sane(self):
         dp = state.compute_dew_point_c(25, 80)
         self.assertTrue(19 < dp < 22)
