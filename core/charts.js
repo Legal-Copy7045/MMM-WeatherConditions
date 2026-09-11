@@ -163,7 +163,7 @@ function dailyChartConfig(state, config, fmt) {
 }
 
 function soilChartConfig(state, config, fmt = defaultFmt) {
-  const hours = (config.soilForecastDays || 3) * 24;
+  const hours = (config.soilForecastDays || 5) * 24;
   const rows = (state.soilForecast || []).slice(0, hours);
   const tempUnit = config.units.temperature.list[0];
   return {

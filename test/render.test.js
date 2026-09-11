@@ -35,3 +35,32 @@ test("minutelyCalloutText: respects the threshold (trace precip doesn't count)",
   const rows = mmh(new Array(60).fill(0.02));
   assert.equal(render.minutelyCalloutText(rows), "No rain expected in the next hour");
 });
+
+const dailyRows = {
+  daily: [{ date: "2026-01-01T00:00:00Z", icon: "clear-day", windKmh: 10 }],
+  soilForecast: [{ time: "2026-01-01T00:00:00Z", tempC: 10 }],
+};
+const baseCfg = { units: { wind: { list: ["kmh"] } }, cards: {} };
+
+test("dailyCardHtml includes both view containers when soil forecast is enabled with data", () => {
+  const html = render.dailyCardHtml(dailyRows, { ...baseCfg, cards: { soilForecast: true } });
+  assert.match(html, /id="wc-daily-temp-view"/);
+  assert.match(html, /id="wc-daily-soil-view"/);
+  assert.match(html, /id="wc-daily-soil-chart"/);
+});
+
+test("dailyCardHtml omits the soil view when soilForecast is off", () => {
+  const html = render.dailyCardHtml(dailyRows, { ...baseCfg, cards: { soilForecast: false } });
+  assert.match(html, /id="wc-daily-temp-view"/);
+  assert.doesNotMatch(html, /id="wc-daily-soil-view"/);
+});
+
+test("dailyCardHtml omits the soil view when there's no soil forecast data, even if enabled", () => {
+  const html = render.dailyCardHtml({ daily: dailyRows.daily, soilForecast: [] }, { ...baseCfg, cards: { soilForecast: true } });
+  assert.doesNotMatch(html, /id="wc-daily-soil-view"/);
+});
+
+test("dailyCardHtml has a stable id for the title so it can be swapped between the two view labels", () => {
+  const html = render.dailyCardHtml(dailyRows, baseCfg);
+  assert.match(html, /id="wc-daily-title"[^>]*>Daily Forecast</);
+});

@@ -1,7 +1,7 @@
 .wc-weather-conditions {
   color: #eef1f8;
   font-family: inherit;
-  width: 300px;
+  width: 320px; /* matches the sports-scoreboard module's rendered width */
   /* Absolute, not relative: MagicMirror's own page font-size (~20px, sized
      for room-distance reading) is much larger than a typical browser
      default, and every nested rule below is em-based off this value — an

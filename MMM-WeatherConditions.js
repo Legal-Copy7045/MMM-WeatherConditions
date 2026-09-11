@@ -45,7 +45,11 @@ Module.register("MMM-WeatherConditions", {
     dailySeries: { temperature: true, precipitation: true, wind: true },
     dailyDays: 5,
 
-    soilForecastDays: 3,
+    soilForecastDays: 5,
+    // How often the Daily Forecast card's chart flips between the day-by-day
+    // temperature+precip view and the soil-temperature view (only relevant
+    // when cards.soilForecast is on and soil data is configured in HA).
+    dailyGraphSwitchMs: 10000,
 
     // Overrides merged onto core/conditions.js CHECK_DEFAULTS.
     alerts: {},
@@ -146,6 +150,8 @@ Module.register("MMM-WeatherConditions", {
     // attached (its ResizeObserver picks up the real size then).
     this.renderCharts(wrapper, this.weatherState);
     this.startCycling(wrapper);
+    this.startChartCycling(wrapper, this.weatherState);
+    this.startDailyViewToggle(wrapper, this.weatherState);
 
     return wrapper;
   },
@@ -169,40 +175,90 @@ Module.register("MMM-WeatherConditions", {
     });
   },
 
+  /** The DOM-based crossfade (startCycling) only works on plain HTML text --
+   *  Chart.js canvases can't participate in a CSS opacity transition, so the
+   *  charts instead periodically rebuild themselves against the next unit
+   *  in the list (a hard swap, not a fade, but the same "cycle through
+   *  configured units" behavior applied to the graphs too). */
+  startChartCycling(root, s) {
+    if (this._chartCycleTimer) clearInterval(this._chartCycleTimer);
+    const list = (this.config.units.temperature || {}).list || [];
+    if (list.length < 2) return;
+    const ms = this.config.units.temperature.cycleMs || 6000;
+    this._chartCycleTimer = setInterval(() => {
+      this._chartUnitIdx = ((this._chartUnitIdx || 0) + 1) % list.length;
+      this.renderCharts(root, s);
+    }, ms);
+  },
+
+  /** Returns this.config with the temperature unit list rotated so the
+   *  currently-active cycle unit is first -- chart config builders always
+   *  read units.temperature.list[0], so this is how the charts pick up
+   *  whichever unit startChartCycling has rotated to. */
+  _cycledConfig() {
+    const list = (this.config.units.temperature || {}).list || [];
+    if (list.length < 2) return this.config;
+    const idx = (this._chartUnitIdx || 0) % list.length;
+    const rotated = [list[idx], ...list.filter((_, i) => i !== idx)];
+    return { ...this.config, units: { ...this.config.units, temperature: { ...this.config.units.temperature, list: rotated } } };
+  },
+
   renderCharts(root, s) {
     const cards = this.config.cards;
+    const cfg = this._cycledConfig();
     if (cards.minutely !== false && s.minutely && s.minutely.length) {
       const canvas = root.querySelector("#wc-minutely-chart");
       if (canvas) {
         this._destroyChart("_minutelyChart");
-        const cfg = WeatherCore.charts.minutelyChartConfig(s);
-        this._minutelyChart = new Chart(canvas.getContext("2d"), cfg);
+        this._minutelyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.minutelyChartConfig(s));
       }
     }
     if (cards.hourly && s.hourly && s.hourly.length) {
       const canvas = root.querySelector("#wc-hourly-chart");
       if (canvas) {
         this._destroyChart("_hourlyChart");
-        const cfg = WeatherCore.charts.hourlyChartConfig(s, this.config, this.fmt);
-        this._hourlyChart = new Chart(canvas.getContext("2d"), cfg);
+        this._hourlyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.hourlyChartConfig(s, cfg, this.fmt));
       }
     }
     if (cards.daily && s.daily && s.daily.length) {
+      this._renderDailySection(root, s);
+    }
+  },
+
+  /** Renders whichever of the Daily Forecast card's two views (temp+precip,
+   *  or soil temperature) is currently active, per this._dailyShowSoil. */
+  _renderDailySection(root, s) {
+    const cfg = this._cycledConfig();
+    const hasSoil = this.config.cards.soilForecast && s.soilForecast && s.soilForecast.length;
+    const showSoil = !!(this._dailyShowSoil && hasSoil);
+
+    const tempView = root.querySelector("#wc-daily-temp-view");
+    const soilView = root.querySelector("#wc-daily-soil-view");
+    const title = root.querySelector("#wc-daily-title");
+    if (tempView) tempView.hidden = showSoil;
+    if (soilView) soilView.hidden = !showSoil;
+    if (title) title.textContent = showSoil ? `Soil Temp — ${this.config.soilForecastDays || 5}-Day` : "Daily Forecast";
+
+    this._destroyChart("_dailyChart");
+    this._destroyChart("_dailySoilChart");
+    if (showSoil) {
+      const canvas = root.querySelector("#wc-daily-soil-chart");
+      if (canvas) this._dailySoilChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.soilChartConfig(s, cfg, this.fmt));
+    } else {
       const canvas = root.querySelector("#wc-daily-chart");
-      if (canvas) {
-        this._destroyChart("_dailyChart");
-        const cfg = WeatherCore.charts.dailyChartConfig(s, this.config, this.fmt);
-        this._dailyChart = new Chart(canvas.getContext("2d"), cfg);
-      }
+      if (canvas) this._dailyChart = new Chart(canvas.getContext("2d"), WeatherCore.charts.dailyChartConfig(s, cfg, this.fmt));
     }
-    if (cards.soilForecast && s.soilForecast && s.soilForecast.length) {
-      const canvas = root.querySelector("#wc-soil-chart");
-      if (canvas) {
-        this._destroyChart("_soilChart");
-        const cfg = WeatherCore.charts.soilChartConfig(s, this.config, this.fmt);
-        this._soilChart = new Chart(canvas.getContext("2d"), cfg);
-      }
-    }
+  },
+
+  startDailyViewToggle(root, s) {
+    if (this._dailyViewTimer) clearInterval(this._dailyViewTimer);
+    const hasSoil = this.config.cards.soilForecast && s.soilForecast && s.soilForecast.length;
+    if (!hasSoil) return;
+    const ms = this.config.dailyGraphSwitchMs || 10000;
+    this._dailyViewTimer = setInterval(() => {
+      this._dailyShowSoil = !this._dailyShowSoil;
+      this._renderDailySection(root, s);
+    }, ms);
   },
 
   _destroyChart(ref) {
