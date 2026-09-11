@@ -87,6 +87,31 @@ test("currentCardHtml keeps each stat to a single line, with dew point/gusts as 
   assert.match(html, /· gusts/);
 });
 
+// Regression: stats used to be cells in a 2-column CSS Grid, where a grid
+// sizes every cell in a row to its tallest member -- so any layout quirk in
+// one cell could visually distort its row-mate. Independent label/value
+// rows can't leak height into each other; this locks in that each stat is
+// its own <div class="wc-stat-row"> rather than a 2-column grid item.
+test("currentCardHtml renders stats as independent rows, not a 2-column grid", () => {
+  const state = { current: { humidityPct: 62, windKmh: 14, pressureHpa: 1014 } };
+  const html = render.currentCardHtml(state, currentCfg);
+  assert.doesNotMatch(html, /wc-current-stats/);
+  const rowCount = (html.match(/wc-stat-row/g) || []).length;
+  assert.equal(rowCount, 4); // Humidity, Pressure, Wind, UV Index (always shown; no moon/soil data here)
+});
+
+// Regression: condition + feels-like used to sit beside the icon/temp in
+// the same flex row, so their horizontal position depended on how much
+// space the icon+temp happened to leave over -- it looked randomly placed
+// rather than deliberately laid out. They're now a dedicated full-width
+// line below the icon/temp row instead.
+test("currentCardHtml puts condition and feels-like on their own line below the icon/temp row", () => {
+  const state = { current: { tempC: 19, feelsLikeC: 18, condition: "Partly cloudy" } };
+  const html = render.currentCardHtml(state, currentCfg);
+  assert.match(html, /<div class="wc-current-main">[\s\S]*?<\/div>\s*<div class="wc-cond-line">/);
+  assert.match(html, /wc-cond-line">\s*<span class="wc-cond-text">Partly cloudy<\/span><span class="wc-feelslike wc-dimmed"> · feels like/);
+});
+
 test("currentCardHtml omits the dew-point/gust note entirely when that reading is unavailable", () => {
   const state = { current: { humidityPct: 62, windKmh: 14, pressureHpa: 1014 } };
   const html = render.currentCardHtml(state, currentCfg);

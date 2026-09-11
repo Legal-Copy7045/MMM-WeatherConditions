@@ -129,7 +129,7 @@
 .wc-current-main {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 
 .wc-current-icon .wi {
@@ -142,23 +142,20 @@
   line-height: 1;
 }
 
-.wc-current-cond {
-  margin-left: 2px;
-  min-width: 0;
-  line-height: 1.3;
-}
-
-.wc-cond-text {
-  text-transform: lowercase;
-  color: #c7cede;
+.wc-cond-line {
+  margin-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.wc-cond-text {
+  text-transform: lowercase;
+  color: #c7cede;
+}
+
 .wc-feelslike {
-  white-space: nowrap;
-  font-size: 0.8em;
+  font-size: 0.9em;
 }
 
 .wc-summary {
@@ -168,20 +165,25 @@
   font-size: 0.82em;
 }
 
-/* Two columns, one line per stat -- every stat's note (dew point, gusts)
-   rides inline on the value line instead of a second line, so no cell can
-   be taller than its row-mate and leave a lopsided gap beside it. */
-.wc-current-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 3px 10px;
+/* One self-contained row per stat (label left, value right, on the SAME
+   line) instead of cells in a 2-column grid -- a grid sizes every cell in a
+   row to its tallest member, so a stat with extra detail (wind's gusts,
+   humidity's dew point) stretched the whole row and left a dead gap under
+   its shorter row-mate. Independent rows can't leak height into each
+   other, and a thin divider between them keeps the list from reading as a
+   loose stack of floating text. */
+.wc-stat-list {
   margin-top: 6px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.wc-stat {
+.wc-stat-row {
   display: flex;
-  flex-direction: column;
-  min-width: 0;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
 .wc-stat-label {
@@ -189,6 +191,7 @@
   text-transform: uppercase;
   letter-spacing: 0.03em;
   color: #8b93a8;
+  flex: none;
 }
 
 .wc-stat-value {
@@ -197,12 +200,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   display: flex;
-  align-items: center;
-  gap: 3px;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
 }
 
 .wc-stat-value .wi {
   flex: none;
+  align-self: center;
 }
 
 .wc-stat-note {
@@ -210,7 +215,7 @@
 }
 
 .wc-sunarc-wrap {
-  margin-top: 4px;
+  margin-top: 6px;
   text-align: center;
   line-height: 0;
 }
