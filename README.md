@@ -82,12 +82,17 @@ npm test                      # JS unit tests (node:test)
 python -m unittest discover -s test -p "test_*.py"   # Python unit tests
 ```
 
+## Known limitations (HA mode)
+
+- **Hourly/daily forecasts depend entirely on the chosen `weather.*` entity supporting HA's `get_forecasts` action.** Not all weather integrations do — HA's own `OpenWeatherMap` integration entity, for example, only exposes current conditions, no forecast at all. `Met.no` (HA's bundled default) and many others do. If the hourly/daily cards aren't showing anything, check **Developer Tools → Actions → weather.get_forecasts** against your chosen entity; if it errors, pick a different `weather.*` entity in the integration's setup.
+- **The sunrise/sunset arc only appears when the source provides sun times.** OpenWeather One Call and Open-Meteo both do (mode B); HA `weather.*` entities generally don't expose sunrise/sunset as attributes at all, and `sun.sun`'s `next_rising`/`next_setting` only ever point at the *next* occurrence (not necessarily today's pair), so mode C can't reliably derive an arc from it yet. The card just omits the arc gracefully rather than showing something wrong.
+
 ## Still on the list
 
 - Locale-driven date/time + UI text translation (bundled languages), independent of MagicMirror's global language setting.
-- Scaling/responsiveness tuning across screen sizes.
 - A full contract-test harness running fixtures through both the JS and Python engines (as MMM-KiaAccess does), rather than hand-written unit tests on each side.
 - OpenWeather severe-weather alerts UI beyond the plain alert list (the data already flows through `alerts[]`).
+- Computing the sunrise/sunset arc directly from lat/lon for HA mode (a small solar-position calculation), instead of depending on the source to provide it.
 
 ## License
 

@@ -15,15 +15,17 @@ const deps = (() => {
 const { units, windscale } = deps;
 
 function baseChartOptions() {
+  const tickFont = { size: 9 };
   return {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
+    layout: { padding: 0 },
     plugins: { legend: { display: false } },
     scales: {
-      x: { ticks: { color: "#c7cede" }, grid: { color: "#2a3247" } },
-      temp: { position: "left", ticks: { color: "#f4c542" }, grid: { color: "#2a3247" } },
-      precip: { position: "right", ticks: { color: "#5aa7ff" }, grid: { display: false } },
+      x: { ticks: { color: "#c7cede", font: tickFont }, grid: { color: "#2a3247" } },
+      temp: { position: "left", ticks: { color: "#f4c542", font: tickFont }, grid: { color: "#2a3247" } },
+      precip: { position: "right", beginAtZero: true, suggestedMax: 5, ticks: { color: "#5aa7ff", font: tickFont }, grid: { display: false } },
     },
   };
 }
@@ -55,7 +57,7 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
       data: rows.map((r) => units.fromBase("temperature", r[field], tempUnit)),
       borderColor: "#f4c542",
       pointBackgroundColor: rows.map((r) => windscale.colorForKmh(r.windKmh)),
-      pointRadius: 4,
+      pointRadius: 3,
       tension: 0.3,
     });
     if (isDaily) {
@@ -86,17 +88,17 @@ function lineBarChartConfig(rows, config, timeField, isDaily, fmt = defaultFmt) 
 
 function hourlyChartConfig(state, config, fmt) {
   const step = Math.max(1, config.hourlyStepHours || 1);
-  const rows = (state.hourly || []).filter((_, i) => i % step === 0).slice(0, config.hourlyPoints || 7);
+  const rows = (state.hourly || []).filter((_, i) => i % step === 0).slice(0, config.hourlyPoints || 5);
   return lineBarChartConfig(rows, config, "time", false, fmt);
 }
 
 function dailyChartConfig(state, config, fmt) {
-  const rows = (state.daily || []).slice(0, config.dailyDays || 8);
+  const rows = (state.daily || []).slice(0, config.dailyDays || 5);
   return lineBarChartConfig(rows, config, "date", true, fmt);
 }
 
 function soilChartConfig(state, config, fmt = defaultFmt) {
-  const hours = (config.soilForecastDays || 6) * 24;
+  const hours = (config.soilForecastDays || 3) * 24;
   const rows = (state.soilForecast || []).slice(0, hours);
   const tempUnit = config.units.temperature.list[0];
   return {
